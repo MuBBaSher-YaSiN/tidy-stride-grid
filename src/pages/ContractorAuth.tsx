@@ -4,18 +4,13 @@ import { CleanNamiButton } from "@/components/ui/button-variants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, User, Mail, Lock, MapPin } from "lucide-react";
-import { FLORIDA_CITIES } from "@/lib/pricing";
+import { ArrowLeft, User, Mail, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const ContractorAuth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
     password: "",
-    city: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -27,18 +22,25 @@ const ContractorAuth = () => {
     try {
       // TODO: Implement actual authentication logic
       toast({
-        title: isLogin ? "Login Successful" : "Registration Successful",
-        description: isLogin 
-          ? "Welcome back! Redirecting to your dashboard..." 
-          : "Account created successfully. Please check your email for verification.",
+        title: "Login Attempt",
+        description: "Verifying contractor credentials...",
       });
+      
+      // Simulate login delay
+      setTimeout(() => {
+        toast({
+          title: "Authentication Failed", 
+          description: "Please contact admin for account setup.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+      }, 2000);
     } catch (error) {
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -59,34 +61,15 @@ const ContractorAuth = () => {
         <Card className="shadow-hero bg-gradient-card">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl text-primary">
-              {isLogin ? "Contractor Login" : "Join Our Team"}
+              Contractor Login
             </CardTitle>
             <p className="text-muted-foreground">
-              {isLogin 
-                ? "Sign in to manage your cleaning jobs" 
-                : "Become a CleanNami contractor"}
+              Sign in to manage your cleaning jobs
             </p>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="flex items-center">
-                    <User className="h-4 w-4 mr-2" />
-                    Full Name
-                  </Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    placeholder="Enter your full name"
-                    required={!isLogin}
-                  />
-                </div>
-              )}
-
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center">
                   <Mail className="h-4 w-4 mr-2" />
@@ -117,66 +100,36 @@ const ContractorAuth = () => {
                 />
               </div>
 
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="city" className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    Service Area
-                  </Label>
-                  <Select value={formData.city} onValueChange={(value) => handleInputChange("city", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your service area" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FLORIDA_CITIES.map((city) => (
-                        <SelectItem key={city} value={city}>
-                          {city}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
               <CleanNamiButton 
                 type="submit" 
                 variant="hero" 
                 className="w-full" 
                 disabled={isLoading}
               >
-                {isLoading 
-                  ? "Please wait..." 
-                  : isLogin 
-                    ? "Sign In" 
-                    : "Create Account"
-                }
+                {isLoading ? "Signing In..." : "Sign In"}
               </CleanNamiButton>
             </form>
 
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-primary hover:text-primary/80 underline-offset-4 hover:underline"
-              >
-                {isLogin 
-                  ? "Need an account? Sign up here" 
-                  : "Already have an account? Sign in"
-                }
-              </button>
+            {/* Account Setup Info */}
+            <div className="mt-6 p-4 bg-gradient-hero rounded-lg">
+              <h4 className="font-semibold text-primary mb-2">Need Account Access?</h4>
+              <p className="text-sm text-muted-foreground mb-2">
+                Contractor accounts are created by CleanNami administrators.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Contact admin for account setup and credentials.
+              </p>
             </div>
 
-            {!isLogin && (
-              <div className="mt-6 p-4 bg-gradient-hero rounded-lg">
-                <h4 className="font-semibold text-primary mb-2">Contractor Benefits:</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• 70% payout rate (minimum $60 per job)</li>
-                  <li>• Flexible scheduling - claim jobs when available</li>
-                  <li>• Direct Stripe payouts</li>
-                  <li>• Support multiple service areas</li>
-                </ul>
-              </div>
-            )}
+            <div className="mt-6 p-4 bg-gradient-hero rounded-lg">
+              <h4 className="font-semibold text-primary mb-2">Contractor Benefits:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• 70% payout rate (minimum $60 per job)</li>
+                <li>• Flexible scheduling - claim jobs when available</li>
+                <li>• Direct Stripe payouts</li>
+                <li>• Support multiple service areas</li>
+              </ul>
+            </div>
           </CardContent>
         </Card>
       </div>

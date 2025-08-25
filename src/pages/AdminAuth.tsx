@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { CleanNamiButton } from "@/components/ui/button-variants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,21 +14,34 @@ const AdminAuth = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // TODO: Implement actual admin authentication logic
-      toast({
-        title: "Admin Login",
-        description: "Verifying credentials...",
-      });
+      // Check for default admin credentials
+      if (formData.email === "admin@cleannami.com" && formData.password === "admin123") {
+        toast({
+          title: "Admin Login Successful",
+          description: "Welcome to the CleanNami admin panel!",
+        });
+        // TODO: Set proper authentication state
+        setTimeout(() => {
+          navigate("/admin/dashboard");
+        }, 1500);
+      } else {
+        toast({
+          title: "Authentication Failed",
+          description: "Invalid credentials. Please try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
-        title: "Authentication Failed",
-        description: "Invalid credentials. Please try again.",
+        title: "Authentication Error",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -74,7 +87,7 @@ const AdminAuth = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  placeholder="Enter admin email"
+                  placeholder="admin@cleannami.com"
                   required
                 />
               </div>
@@ -104,12 +117,24 @@ const AdminAuth = () => {
               </CleanNamiButton>
             </form>
 
+            {/* Default Credentials Info */}
+            <div className="mt-6 p-4 bg-secondary/20 rounded-lg border-l-4 border-primary">
+              <h4 className="font-semibold text-primary mb-2">Default Credentials:</h4>
+              <p className="text-sm text-muted-foreground">
+                <strong>Email:</strong> admin@cleannami.com<br />
+                <strong>Password:</strong> admin123
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Please change these credentials after first login.
+              </p>
+            </div>
+
             <div className="mt-6 p-4 bg-gradient-hero rounded-lg">
               <h4 className="font-semibold text-primary mb-2">Admin Capabilities:</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Create and manage contractor accounts</li>
                 <li>• Approve and mark jobs as paid</li>
                 <li>• View all payment events and transfers</li>
-                <li>• Manage contractor accounts</li>
                 <li>• Monitor system health and metrics</li>
                 <li>• Handle customer service issues</li>
               </ul>

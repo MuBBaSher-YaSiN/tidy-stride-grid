@@ -1,16 +1,13 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CleanNamiButton } from "@/components/ui/button-variants";
 import { PricingCalculator } from "@/components/PricingCalculator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { type PricingResult, FLORIDA_CITIES } from "@/lib/pricing";
+import { FLORIDA_CITIES } from "@/lib/pricing";
 import { Sparkles, Shield, Clock, CheckCircle } from "lucide-react";
 import heroImage from "@/assets/hero-cleaning.jpg";
 
 const Index = () => {
-  const [currentPricing, setCurrentPricing] = useState<PricingResult | null>(null);
-
   return (
     <div className="min-h-screen bg-gradient-hero">
       {/* Navigation */}
@@ -52,9 +49,11 @@ const Index = () => {
               ))}
             </div>
 
-            <CleanNamiButton variant="hero" size="xl" className="mb-8">
-              Book Your Cleaning
-            </CleanNamiButton>
+        <Link to="/book">
+          <CleanNamiButton variant="hero" size="xl" className="mb-8">
+            Book Your Cleaning
+          </CleanNamiButton>
+        </Link>
           </div>
 
           <div className="relative">
@@ -114,7 +113,7 @@ const Index = () => {
 
         {/* Pricing Calculator */}
         <div className="flex justify-center">
-          <PricingCalculator onPriceChange={setCurrentPricing} />
+          <PricingCalculator />
         </div>
       </section>
 
@@ -170,9 +169,11 @@ const Index = () => {
             Join hundreds of satisfied customers across Florida's coast.
             Book your first cleaning today!
           </p>
-          <CleanNamiButton variant="secondary" size="xl">
-            Get Started Now
-          </CleanNamiButton>
+          <Link to="/book">
+            <CleanNamiButton variant="hero" size="xl">
+              Get Started Now
+            </CleanNamiButton>
+          </Link>
         </div>
       </section>
 

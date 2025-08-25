@@ -51,7 +51,7 @@ export type Database = {
           email: string
           id: string
           name: string
-          password_hash: string
+          password_hash: string | null
           stripe_account_id: string | null
           updated_at: string | null
         }
@@ -61,7 +61,7 @@ export type Database = {
           email: string
           id?: string
           name: string
-          password_hash: string
+          password_hash?: string | null
           stripe_account_id?: string | null
           updated_at?: string | null
         }
@@ -71,7 +71,7 @@ export type Database = {
           email?: string
           id?: string
           name?: string
-          password_hash?: string
+          password_hash?: string | null
           stripe_account_id?: string | null
           updated_at?: string | null
         }
