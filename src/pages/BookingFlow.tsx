@@ -90,17 +90,34 @@ const BookingFlow = () => {
 
   const handleBookingSubmit = async () => {
     setIsLoading(true);
+    console.log("Booking submission started", bookingData);
+    
     try {
-      // TODO: Implement actual booking submission to Supabase
-      toast({
-        title: "Booking Submitted!",
-        description: "Your cleaning subscription has been created. You'll receive a confirmation email shortly.",
-      });
+      const priceResult = calculateCurrentPrice();
+      console.log("Price result:", priceResult);
       
-      setTimeout(() => {
-        navigate("/booking-success");
-      }, 2000);
+      if (priceResult.isCustomQuote) {
+        toast({
+          title: "Custom Quote Request Submitted!",
+          description: "We'll contact you within 24 hours with a custom quote for your property.",
+        });
+        
+        setTimeout(() => {
+          navigate("/booking-success");
+        }, 2000);
+      } else {
+        // TODO: Implement actual payment processing with Stripe
+        toast({
+          title: "Booking Submitted!",
+          description: "Your cleaning subscription has been created. You'll receive a confirmation email shortly.",
+        });
+        
+        setTimeout(() => {
+          navigate("/booking-success");
+        }, 2000);
+      }
     } catch (error) {
+      console.error("Booking submission error:", error);
       toast({
         title: "Booking Failed",
         description: "Something went wrong. Please try again.",
@@ -464,7 +481,7 @@ const BookingFlow = () => {
             size="lg" 
             className="w-full"
             onClick={handleBookingSubmit}
-            disabled={isLoading || priceResult.isCustomQuote}
+            disabled={isLoading}
           >
             {isLoading ? "Processing..." : priceResult.isCustomQuote ? "Request Custom Quote" : `Pay ${formatCurrency(priceResult.price * 100)} & Book`}
           </CleanNamiButton>
