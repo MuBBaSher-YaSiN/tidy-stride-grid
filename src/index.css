@@ -2,57 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* CleanNami Design System - Blue Ocean Theme */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* CleanNami Brand Colors - Blue Ocean Theme */
+    --background: 206 100% 97%;
+    --foreground: 215 25% 27%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 215 25% 27%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 215 25% 27%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Deep Ocean Blue */
+    --primary: 215 84% 32%;
+    --primary-foreground: 206 100% 97%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Ocean Foam */
+    --secondary: 206 60% 88%;
+    --secondary-foreground: 215 84% 32%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 206 40% 93%;
+    --muted-foreground: 215 15% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Bright Ocean */
+    --accent: 206 84% 58%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 206 30% 85%;
+    --input: 206 30% 85%;
+    --ring: 215 84% 32%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Success - Ocean Success */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Warning - Sandy Beach */
+    --warning: 45 93% 58%;
+    --warning-foreground: 0 0% 100%;
 
-    --sidebar-primary: 240 5.9% 10%;
+    /* CleanNami Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(206 100% 97%) 0%, hsl(206 60% 88%) 100%);
+    --gradient-ocean: linear-gradient(135deg, hsl(215 84% 32%) 0%, hsl(206 84% 58%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(206 40% 98%) 100%);
 
-    --sidebar-primary-foreground: 0 0% 98%;
+    /* CleanNami Shadows */
+    --shadow-card: 0 4px 20px hsl(215 84% 32% / 0.08);
+    --shadow-button: 0 2px 10px hsl(215 84% 32% / 0.15);
+    --shadow-hero: 0 10px 40px hsl(215 84% 32% / 0.12);
 
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Animation Variables */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 
   .dark {
