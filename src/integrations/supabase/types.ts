@@ -14,13 +14,382 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_users: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+          password_hash: string
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          name: string
+          password_hash: string
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+          password_hash?: string
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      contractors: {
+        Row: {
+          city: string | null
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+          password_hash: string
+          stripe_account_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          name: string
+          password_hash: string
+          stripe_account_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+          password_hash?: string
+          stripe_account_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      customers: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          name: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      jobs: {
+        Row: {
+          city: string | null
+          contractor_id: string | null
+          created_at: string | null
+          date: string
+          ics_uid: string | null
+          id: string
+          is_first_clean: boolean | null
+          notes: string | null
+          payout_cents: number
+          price_cents: number
+          property_id: string | null
+          status: string | null
+          subscription_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          contractor_id?: string | null
+          created_at?: string | null
+          date: string
+          ics_uid?: string | null
+          id?: string
+          is_first_clean?: boolean | null
+          notes?: string | null
+          payout_cents: number
+          price_cents: number
+          property_id?: string | null
+          status?: string | null
+          subscription_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          contractor_id?: string | null
+          created_at?: string | null
+          date?: string
+          ics_uid?: string | null
+          id?: string
+          is_first_clean?: boolean | null
+          notes?: string | null
+          payout_cents?: number
+          price_cents?: number
+          property_id?: string | null
+          status?: string | null
+          subscription_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      magic_links: {
+        Row: {
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          token: string
+          used: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          token: string
+          used?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used?: boolean | null
+        }
+        Relationships: []
+      }
+      payment_events: {
+        Row: {
+          amount_cents: number
+          attempt_no: number | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          job_id: string | null
+          status: string | null
+          stripe_pi_id: string | null
+          stripe_tr_id: string | null
+          subscription_id: string | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount_cents: number
+          attempt_no?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          job_id?: string | null
+          status?: string | null
+          stripe_pi_id?: string | null
+          stripe_tr_id?: string | null
+          subscription_id?: string | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          attempt_no?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          job_id?: string | null
+          status?: string | null
+          stripe_pi_id?: string | null
+          stripe_tr_id?: string | null
+          subscription_id?: string | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      properties: {
+        Row: {
+          address1: string
+          address2: string | null
+          baths: number
+          beds: number
+          city: string | null
+          created_at: string | null
+          customer_id: string | null
+          ical_url: string | null
+          id: string
+          is_vr: boolean | null
+          sqft: number | null
+          updated_at: string | null
+          zipcode: string | null
+        }
+        Insert: {
+          address1: string
+          address2?: string | null
+          baths: number
+          beds: number
+          city?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          ical_url?: string | null
+          id?: string
+          is_vr?: boolean | null
+          sqft?: number | null
+          updated_at?: string | null
+          zipcode?: string | null
+        }
+        Update: {
+          address1?: string
+          address2?: string | null
+          baths?: number
+          beds?: number
+          city?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          ical_url?: string | null
+          id?: string
+          is_vr?: boolean | null
+          sqft?: number | null
+          updated_at?: string | null
+          zipcode?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "properties_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          id: string
+          months: number | null
+          property_id: string | null
+          start_limit: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          months?: number | null
+          property_id?: string | null
+          start_limit?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          months?: number | null
+          property_id?: string | null
+          start_limit?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_payout: {
+        Args: { price_cents: number }
+        Returns: number
+      }
+      calculate_price: {
+        Args: { baths: number; beds: number; sqft: number }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
