@@ -83,9 +83,7 @@ const BookingFlow = () => {
   };
 
   const calculateCurrentPrice = () => {
-    const result = calculatePrice(bookingData.beds, bookingData.baths, bookingData.sqft);
-    updateBookingData({ priceResult: result });
-    return result;
+    return calculatePrice(bookingData.beds, bookingData.baths, bookingData.sqft);
   };
 
   const handleBookingSubmit = async () => {
