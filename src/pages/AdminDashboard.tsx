@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { CleanNamiButton } from "@/components/ui/button-variants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,15 +16,126 @@ import {
   TrendingUp
 } from "lucide-react";
 
+interface DashboardStats {
+  totalJobs: number;
+  activeContractors: number;
+  pendingJobs: number;
+  monthlyRevenue: number;
+  completedJobs: number;
+  pendingPayments: number;
+}
+
+interface RecentActivity {
+  id: string;
+  type: string;
+  description: string;
+  timestamp: string;
+}
+
 const AdminDashboard = () => {
-  // Mock data - replace with real data from Supabase
-  const stats = {
-    totalJobs: 127,
-    activeContractors: 8,
-    pendingJobs: 15,
-    monthlyRevenue: 12450,
-    completedJobs: 89,
-    pendingPayments: 6
+  const [stats, setStats] = useState<DashboardStats>({
+    totalJobs: 0,
+    activeContractors: 0,
+    pendingJobs: 0,
+    monthlyRevenue: 0,
+    completedJobs: 0,
+    pendingPayments: 0
+  });
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch jobs data
+      const { data: jobs } = await supabase.from('jobs').select('*');
+      const { data: contractors } = await supabase.from('contractors').select('*');
+      const { data: payments } = await supabase.from('payment_events').select('*');
+
+      const totalJobs = jobs?.length || 0;
+      const activeContractors = contractors?.length || 0;
+      const pendingJobs = jobs?.filter(job => job.status === 'New').length || 0;
+      const completedJobs = jobs?.filter(job => job.status === 'Completed').length || 0;
+      const pendingPayments = payments?.filter(p => p.status === 'pending').length || 0;
+      
+      // Calculate monthly revenue from completed jobs
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const monthlyRevenue = jobs?.filter(job => {
+        const jobDate = new Date(job.date);
+        return jobDate.getMonth() === currentMonth && 
+               jobDate.getFullYear() === currentYear &&
+               job.status === 'Completed';
+      }).reduce((sum, job) => sum + (job.price_cents / 100), 0) || 0;
+
+      setStats({
+        totalJobs,
+        activeContractors,
+        pendingJobs,
+        monthlyRevenue,
+        completedJobs,
+        pendingPayments
+      });
+
+      // Generate recent activity
+      const activities: RecentActivity[] = [];
+      
+      if (jobs && jobs.length > 0) {
+        const recentJobs = jobs
+          .filter(job => job.status === 'Completed')
+          .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
+          .slice(0, 2);
+        
+        recentJobs.forEach((job, index) => {
+          activities.push({
+            id: `job-${job.id}`,
+            type: 'Job',
+            description: `Job #${job.id.slice(0, 8)} completed in ${job.city}`,
+            timestamp: new Date(job.updated_at || job.created_at).toLocaleString()
+          });
+        });
+      }
+
+      if (payments && payments.length > 0) {
+        const recentPayments = payments
+          .filter(p => p.status === 'completed')
+          .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
+          .slice(0, 1);
+        
+        recentPayments.forEach(payment => {
+          activities.push({
+            id: `payment-${payment.id}`,
+            type: 'Payment',
+            description: `$${(payment.amount_cents / 100).toFixed(2)} payment processed`,
+            timestamp: new Date(payment.updated_at || payment.created_at).toLocaleString()
+          });
+        });
+      }
+
+      if (contractors && contractors.length > 0) {
+        const recentContractors = contractors
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 1);
+        
+        recentContractors.forEach(contractor => {
+          activities.push({
+            id: `contractor-${contractor.id}`,
+            type: 'New User',
+            description: `${contractor.name} joined as contractor in ${contractor.city}`,
+            timestamp: new Date(contractor.created_at).toLocaleString()
+          });
+        });
+      }
+
+      setRecentActivity(activities.slice(0, 3));
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -117,14 +229,18 @@ const AdminDashboard = () => {
               <CardTitle className="text-primary">Contractor Management</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <CleanNamiButton variant="hero" className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Contractor
-              </CleanNamiButton>
-              <CleanNamiButton variant="ocean" className="w-full">
-                <Users className="h-4 w-4 mr-2" />
-                View All Contractors
-              </CleanNamiButton>
+              <Link to="/admin/contractors">
+                <CleanNamiButton variant="hero" className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Contractor
+                </CleanNamiButton>
+              </Link>
+              <Link to="/admin/contractors">
+                <CleanNamiButton variant="ocean" className="w-full">
+                  <Users className="h-4 w-4 mr-2" />
+                  View All Contractors
+                </CleanNamiButton>
+              </Link>
             </CardContent>
           </Card>
 
@@ -133,14 +249,18 @@ const AdminDashboard = () => {
               <CardTitle className="text-primary">Job Management</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <CleanNamiButton variant="success" className="w-full">
-                <Eye className="h-4 w-4 mr-2" />
-                Review Pending Jobs ({stats.pendingJobs})
-              </CleanNamiButton>
-              <CleanNamiButton variant="warning" className="w-full">
-                <DollarSign className="h-4 w-4 mr-2" />
-                Process Payments ({stats.pendingPayments})
-              </CleanNamiButton>
+              <Link to="/admin/jobs">
+                <CleanNamiButton variant="success" className="w-full">
+                  <Eye className="h-4 w-4 mr-2" />
+                  Review Pending Jobs ({stats.pendingJobs})
+                </CleanNamiButton>
+              </Link>
+              <Link to="/admin/payments">
+                <CleanNamiButton variant="warning" className="w-full">
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Process Payments ({stats.pendingPayments})
+                </CleanNamiButton>
+              </Link>
             </CardContent>
           </Card>
         </div>
@@ -151,37 +271,27 @@ const AdminDashboard = () => {
             <CardTitle className="text-primary">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-gradient-hero rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Badge variant="secondary">Job #127</Badge>
-                  <span className="text-sm text-muted-foreground">
-                    Residential cleaning completed by Sarah Johnson
-                  </span>
-                </div>
-                <span className="text-sm text-muted-foreground">2 hours ago</span>
+            {loading ? (
+              <div className="text-center py-8">Loading recent activity...</div>
+            ) : recentActivity.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No recent activity found.
               </div>
-              
-              <div className="flex items-center justify-between p-3 bg-gradient-hero rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Badge variant="secondary">Payment</Badge>
-                  <span className="text-sm text-muted-foreground">
-                    $180 payment processed for VR cleaning
-                  </span>
-                </div>
-                <span className="text-sm text-muted-foreground">4 hours ago</span>
+            ) : (
+              <div className="space-y-4">
+                {recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-center justify-between p-3 bg-gradient-hero rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <Badge variant="secondary">{activity.type}</Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {activity.description}
+                      </span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">{activity.timestamp}</span>
+                  </div>
+                ))}
               </div>
-              
-              <div className="flex items-center justify-between p-3 bg-gradient-hero rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Badge variant="secondary">New User</Badge>
-                  <span className="text-sm text-muted-foreground">
-                    Mike Davis joined as contractor in Daytona Beach
-                  </span>
-                </div>
-                <span className="text-sm text-muted-foreground">1 day ago</span>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
