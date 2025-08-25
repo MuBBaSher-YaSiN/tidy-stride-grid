@@ -1,12 +1,188 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { CleanNamiButton } from "@/components/ui/button-variants";
+import { PricingCalculator } from "@/components/PricingCalculator";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { type PricingResult, FLORIDA_CITIES } from "@/lib/pricing";
+import { Sparkles, Shield, Clock, CheckCircle } from "lucide-react";
+import heroImage from "@/assets/hero-cleaning.jpg";
 
 const Index = () => {
+  const [currentPricing, setCurrentPricing] = useState<PricingResult | null>(null);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-gradient-hero">
+      {/* Navigation */}
+      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
+        <div className="flex items-center space-x-2">
+          <Sparkles className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl font-bold text-primary">CleanNami</h1>
+        </div>
+        <div className="flex space-x-4">
+          <Link to="/contractor">
+            <CleanNamiButton variant="ghost">Contractor Login</CleanNamiButton>
+          </Link>
+          <Link to="/admin">
+            <CleanNamiButton variant="ocean">Admin</CleanNamiButton>
+          </Link>
+        </div>
+      </nav>
+
+      {/* Hero Section with Image */}
+      <section className="relative py-20 px-6 max-w-7xl mx-auto">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="text-center lg:text-left">
+            <h1 className="text-5xl md:text-6xl font-bold text-primary mb-6">
+              Professional Cleaning
+              <span className="block bg-gradient-ocean bg-clip-text text-transparent">
+                Made Simple
+              </span>
+            </h1>
+            <p className="text-xl text-muted-foreground mb-8">
+              Premium cleaning services for residential and vacation rental properties across Florida's coast.
+              Reliable, professional, and hassle-free.
+            </p>
+            
+            <div className="flex flex-wrap justify-center lg:justify-start gap-4 mb-8">
+              {FLORIDA_CITIES.map((city) => (
+                <Badge key={city} variant="secondary" className="px-4 py-2 text-sm">
+                  {city}
+                </Badge>
+              ))}
+            </div>
+
+            <CleanNamiButton variant="hero" size="xl" className="mb-8">
+              Book Your Cleaning
+            </CleanNamiButton>
+          </div>
+
+          <div className="relative">
+            <img 
+              src={heroImage} 
+              alt="Clean, modern home interior with ocean views" 
+              className="rounded-lg shadow-hero w-full h-auto"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent rounded-lg"></div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 px-6 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          <Card className="text-center shadow-card bg-gradient-card">
+            <CardHeader>
+              <Shield className="h-12 w-12 text-accent mx-auto mb-4" />
+              <CardTitle>Trusted & Insured</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Fully licensed and insured professionals</p>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center shadow-card bg-gradient-card">
+            <CardHeader>
+              <Clock className="h-12 w-12 text-accent mx-auto mb-4" />
+              <CardTitle>Flexible Scheduling</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">1-6 month subscriptions to fit your needs</p>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center shadow-card bg-gradient-card">
+            <CardHeader>
+              <Sparkles className="h-12 w-12 text-accent mx-auto mb-4" />
+              <CardTitle>Premium Quality</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Meticulous attention to every detail</p>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center shadow-card bg-gradient-card">
+            <CardHeader>
+              <CheckCircle className="h-12 w-12 text-accent mx-auto mb-4" />
+              <CardTitle>Satisfaction Guaranteed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">100% satisfaction or we'll make it right</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Pricing Calculator */}
+        <div className="flex justify-center">
+          <PricingCalculator onPriceChange={setCurrentPricing} />
+        </div>
+      </section>
+
+      {/* Service Types */}
+      <section className="py-16 px-6 max-w-4xl mx-auto">
+        <h2 className="text-3xl font-bold text-center text-primary mb-12">
+          Our Services
+        </h2>
+        <div className="grid md:grid-cols-2 gap-8">
+          <Card className="shadow-card bg-gradient-card">
+            <CardHeader>
+              <CardTitle className="text-primary">Residential Cleaning</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                Regular cleaning services for your home with flexible scheduling from 1-6 months.
+              </p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Deep cleaning on first visit</li>
+                <li>• Recurring maintenance cleaning</li>
+                <li>• Eco-friendly products available</li>
+                <li>• Customizable cleaning checklist</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-card bg-gradient-card">
+            <CardHeader>
+              <CardTitle className="text-primary">Vacation Rental Cleaning</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                Automated turnover cleaning synced with your Airbnb calendar.
+              </p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• iCal integration for automatic scheduling</li>
+                <li>• Fast checkout-day turnovers</li>
+                <li>• Inventory restocking</li>
+                <li>• Property condition reports</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-6 text-center bg-gradient-ocean text-primary-foreground">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-4xl font-bold mb-6">
+            Ready to Experience the CleanNami Difference?
+          </h2>
+          <p className="text-xl mb-8 opacity-90">
+            Join hundreds of satisfied customers across Florida's coast.
+            Book your first cleaning today!
+          </p>
+          <CleanNamiButton variant="secondary" size="xl">
+            Get Started Now
+          </CleanNamiButton>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-8 px-6 text-center text-muted-foreground bg-card">
+        <p>&copy; 2025 CleanNami. Professional cleaning services across Florida.</p>
+        <p className="text-sm mt-2">
+          Serving New Smyrna Beach, Daytona Beach, and Edgewater
+        </p>
+      </footer>
     </div>
   );
 };
