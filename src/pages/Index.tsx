@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { FLORIDA_CITIES } from "@/lib/pricing";
 import { Sparkles, Shield, Clock, CheckCircle } from "lucide-react";
 import heroImage from "@/assets/hero-cleaning.jpg";
+import logo from "@/assets/logo.png";
+
 
 const Index = () => {
   return (
@@ -15,6 +17,7 @@ const Index = () => {
         <div className="flex items-center space-x-2">
           <Sparkles className="h-8 w-8 text-primary" />
           <h1 className="text-2xl font-bold text-primary">CleanNami</h1>
+          <img src={logo} alt="logo" className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-transparent" />
         </div>
         <div className="flex space-x-4">
           <Link to="/contractor">
