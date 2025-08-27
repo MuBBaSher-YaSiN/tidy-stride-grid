@@ -37,29 +37,34 @@ const Index = () => {
               </span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Premium cleaning services for residential and vacation rental properties across Florida's coast.
-              Reliable, professional, and hassle-free.
+              Premium cleaning services for residential and vacation rental
+              properties across Florida's coast. Reliable, professional, and
+              hassle-free.
             </p>
-            
+
             <div className="flex flex-wrap justify-center lg:justify-start gap-4 mb-8">
               {FLORIDA_CITIES.map((city) => (
-                <Badge key={city} variant="secondary" className="px-4 py-2 text-sm">
+                <Badge
+                  key={city}
+                  variant="secondary"
+                  className="px-4 py-2 text-sm"
+                >
                   {city}
                 </Badge>
               ))}
             </div>
 
-        <Link to="/book">
-          <CleanNamiButton variant="hero" size="xl" className="mb-8">
-            Book Your Cleaning
-          </CleanNamiButton>
-        </Link>
+            <Link to="/book">
+              <CleanNamiButton variant="hero" size="xl" className="mb-8">
+                Book Your Cleaning
+              </CleanNamiButton>
+            </Link>
           </div>
 
           <div className="relative">
-            <img 
-              src={heroImage} 
-              alt="Clean, modern home interior with ocean views" 
+            <img
+              src={heroImage}
+              alt="Clean, modern home interior with ocean views"
               className="rounded-lg shadow-hero w-full h-auto"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent rounded-lg"></div>
@@ -73,40 +78,57 @@ const Index = () => {
           <Card className="text-center shadow-card bg-gradient-card">
             <CardHeader>
               <Shield className="h-12 w-12 text-accent mx-auto mb-4" />
-              <CardTitle>Trusted & Insured</CardTitle>
+              <CardTitle>Seamless Booking & Automation</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Fully licensed and insured professionals</p>
+              <p className=" text-muted-foreground">
+                Set up your property preferences once, and CleanNami takes care
+                of the rest. Every booking is automatically scheduled, with all
+                add-ons and customer checklists integrated into the clean.
+              </p>
             </CardContent>
           </Card>
 
           <Card className="text-center shadow-card bg-gradient-card">
             <CardHeader>
               <Clock className="h-12 w-12 text-accent mx-auto mb-4" />
-              <CardTitle>Flexible Scheduling</CardTitle>
+              <CardTitle>Consistent & Transparent Pricing</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">1-6 month subscriptions to fit your needs</p>
+              <p className="text-muted-foreground">
+                No haggling, no hidden fees. You see the exact price upfront —
+                based on your property details, laundry needs, and hot tub
+                options — and it stays the same every clean.
+              </p>
             </CardContent>
           </Card>
 
           <Card className="text-center shadow-card bg-gradient-card">
             <CardHeader>
               <Sparkles className="h-12 w-12 text-accent mx-auto mb-4" />
-              <CardTitle>Premium Quality</CardTitle>
+              <CardTitle>Turnkey Turnovers, Not Just Cleaning</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Meticulous attention to every detail</p>
+              <p className="text-muted-foreground">
+                Our cleaners don’t just scrub — they stage beds, restock
+                essentials already in your unit, reset hot tubs, and prepare
+                your property so guests feel like the very first check-in.
+              </p>
             </CardContent>
           </Card>
 
           <Card className="text-center shadow-card bg-gradient-card">
             <CardHeader>
               <CheckCircle className="h-12 w-12 text-accent mx-auto mb-4" />
-              <CardTitle>Satisfaction Guaranteed</CardTitle>
+              <CardTitle>Reliability You Can Trust</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">100% satisfaction or we'll make it right</p>
+              <p className="text-muted-foreground">
+                {" "}
+                Cleaners are GPS-verified at check-in and check-out. With
+                performance tracking and a dedicated on-call backup pool, your
+                turnovers get done on time, every time.
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -125,11 +147,14 @@ const Index = () => {
         <div className="grid md:grid-cols-2 gap-8">
           <Card className="shadow-card bg-gradient-card">
             <CardHeader>
-              <CardTitle className="text-primary">Residential Cleaning</CardTitle>
+              <CardTitle className="text-primary">
+                Residential Cleaning
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground mb-4">
-                Regular cleaning services for your home with flexible scheduling from 1-6 months.
+                Regular cleaning services for your home with flexible scheduling
+                from 1-6 months.
               </p>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>• Deep cleaning on first visit</li>
@@ -142,7 +167,9 @@ const Index = () => {
 
           <Card className="shadow-card bg-gradient-card">
             <CardHeader>
-              <CardTitle className="text-primary">Vacation Rental Cleaning</CardTitle>
+              <CardTitle className="text-primary">
+                Vacation Rental Cleaning
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground mb-4">
@@ -166,8 +193,8 @@ const Index = () => {
             Ready to Experience the CleanNami Difference?
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Join hundreds of satisfied customers across Florida's coast.
-            Book your first cleaning today!
+            Join hundreds of satisfied customers across Florida's coast. Book
+            your first cleaning today!
           </p>
           <Link to="/book">
             <CleanNamiButton variant="hero" size="xl">
@@ -179,7 +206,9 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="py-8 px-6 text-center text-muted-foreground bg-card">
-        <p>&copy; 2025 CleanNami. Professional cleaning services across Florida.</p>
+        <p>
+          &copy; 2025 CleanNami. Professional cleaning services across Florida.
+        </p>
         <p className="text-sm mt-2">
           Serving New Smyrna Beach, Daytona Beach, and Edgewater
         </p>
