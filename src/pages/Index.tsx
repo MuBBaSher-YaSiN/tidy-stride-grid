@@ -4,12 +4,14 @@ import { PricingCalculator } from "@/components/PricingCalculator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FLORIDA_CITIES } from "@/lib/pricing";
-import { Sparkles, Shield, Clock, CheckCircle } from "lucide-react";
+import { Sparkles, Shield, Clock, CheckCircle, Menu, X } from "lucide-react";
 import heroImage from "@/assets/hero-cleaning.jpg";
 import logo from "@/assets/logo.png";
+import { useState } from "react";
 
 
 const Index = () => {
+   const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div className="min-h-screen bg-gradient-hero">
       {/* Navigation */}
@@ -19,7 +21,8 @@ const Index = () => {
           <h1 className="text-2xl font-bold text-primary">CleanNami</h1>
           <img src={logo} alt="logo" className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-transparent" />
         </div>
-        <div className="flex space-x-4">
+       {/* Desktop Links */}
+        <div className="hidden sm:flex space-x-4">
           <Link to="/contractor">
             <CleanNamiButton variant="ghost">Contractor Login</CleanNamiButton>
           </Link>
@@ -27,6 +30,29 @@ const Index = () => {
             <CleanNamiButton variant="ocean">Admin</CleanNamiButton>
           </Link>
         </div>
+        
+        {/* Mobile Menu Button */}
+        <button
+          className="sm:hidden p-2"
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          {menuOpen ? <X className="h-6 w-6 text-primary" /> : <Menu className="h-6 w-6 text-primary" />}
+        </button>
+         {/* Mobile Dropdown */}
+        {menuOpen && (
+          <div className="absolute right-6 top-16 bg-white rounded-lg shadow-md flex flex-col space-y-2 p-4 sm:hidden z-50">
+            <Link to="/contractor" onClick={() => setMenuOpen(false)}>
+              <CleanNamiButton variant="ghost" className="w-full">
+                Contractor Login
+              </CleanNamiButton>
+            </Link>
+            <Link to="/admin" onClick={() => setMenuOpen(false)}>
+              <CleanNamiButton variant="ocean" className="w-full">
+                Admin
+              </CleanNamiButton>
+            </Link>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section with Image */}
@@ -40,7 +66,7 @@ const Index = () => {
               </span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              CleanNami handles every detail of your vacation rental turnover — from linens and laundry to staging and hot tub care — so you can relax, impress guests, and always get five-star reviews.
+              CleanNami handles every detail of your vacation rental turnover — from linens and laundry to staging and hot tub care — so you can relax, impress guests, and always get five-star reviews.
             </p>
 
             <div className="flex flex-wrap justify-center lg:justify-start gap-4 mb-8">
