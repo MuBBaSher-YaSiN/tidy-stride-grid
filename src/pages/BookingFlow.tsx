@@ -286,12 +286,13 @@ const BookingFlow = () => {
 
         {bookingData.serviceType === 'VR' && (
           <div className="space-y-2">
-            <Label htmlFor="icalUrl">iCal URL (Optional)</Label>
+            <Label htmlFor="icalUrl">iCal URL </Label>
             <Input
               id="icalUrl"
               value={bookingData.icalUrl || ''}
               onChange={(e) => updateBookingData({ icalUrl: e.target.value })}
               placeholder="https://www.airbnb.com/calendar/ical/..."
+            required
             />
             <p className="text-sm text-muted-foreground">
               Connect your Airbnb/VRBO calendar for automatic scheduling

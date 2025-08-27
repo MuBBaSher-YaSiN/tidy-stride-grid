@@ -31,15 +31,13 @@ const Index = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="text-center lg:text-left">
             <h1 className="text-5xl md:text-6xl font-bold text-primary mb-6">
-              Professional Cleaning
+              Effortless Vacation Rental Turnovers.
               <span className="block bg-gradient-ocean bg-clip-text text-transparent">
-                Made Simple
+                Five-Star Cleans, Every Time.
               </span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Premium cleaning services for residential and vacation rental
-              properties across Florida's coast. Reliable, professional, and
-              hassle-free.
+              CleanNami handles every detail of your vacation rental turnover — from linens and laundry to staging and hot tub care — so you can relax, impress guests, and always get five-star reviews.
             </p>
 
             <div className="flex flex-wrap justify-center lg:justify-start gap-4 mb-8">
@@ -135,7 +133,7 @@ const Index = () => {
 
         {/* Pricing Calculator */}
         <div className="flex justify-center">
-          <PricingCalculator />
+          {/* <PricingCalculator /> */}
         </div>
       </section>
 
@@ -145,6 +143,24 @@ const Index = () => {
           Our Services
         </h2>
         <div className="grid md:grid-cols-2 gap-8">
+             <Card className="shadow-card bg-gradient-card">
+            <CardHeader>
+              <CardTitle className="text-primary">
+                Vacation Rental Cleaning
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                Automated turnover cleaning synced with your Airbnb calendar.
+              </p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• iCal integration for automatic scheduling</li>
+                <li>• Same day cleaning turnovers</li>
+                <li>• Inventory restocking and staging</li>
+                <li>• Property condition reports</li>
+              </ul>
+            </CardContent>
+          </Card>
           <Card className="shadow-card bg-gradient-card">
             <CardHeader>
               <CardTitle className="text-primary">
@@ -165,24 +181,6 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-card bg-gradient-card">
-            <CardHeader>
-              <CardTitle className="text-primary">
-                Vacation Rental Cleaning
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                Automated turnover cleaning synced with your Airbnb calendar.
-              </p>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• iCal integration for automatic scheduling</li>
-                <li>• Fast checkout-day turnovers</li>
-                <li>• Inventory restocking</li>
-                <li>• Property condition reports</li>
-              </ul>
-            </CardContent>
-          </Card>
         </div>
       </section>
 
