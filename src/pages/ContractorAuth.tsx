@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, User, Mail, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
+//adding conmments
 const ContractorAuth = () => {
   const [formData, setFormData] = useState({
     email: "",
