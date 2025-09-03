@@ -58,7 +58,7 @@ export default function BookingSuccess() {
             .from("bookings")
             .select("*")
             .eq("id", bookingId)
-            .single();
+            .maybeSingle();
 
           if (bookingError) {
             console.error("Error fetching booking:", bookingError);

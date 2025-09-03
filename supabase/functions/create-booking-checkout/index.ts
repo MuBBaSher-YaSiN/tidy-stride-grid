@@ -66,6 +66,13 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     logStep("Stripe initialized");
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(bookingData.customerEmail)) {
+      logStep("ERROR: Invalid email format", { email: bookingData.customerEmail });
+      throw new Error(`Invalid email address: ${bookingData.customerEmail}`);
+    }
+
     // Check if customer already exists
     const customers = await stripe.customers.list({ 
       email: bookingData.customerEmail, 
@@ -157,7 +164,20 @@ serve(async (req) => {
         .update({ stripe_setup_intent_id: session.setup_intent })
         .eq("id", booking.id);
 
-      logStep("Setup session created", { sessionId: session.id, url: session.url });
+      // Create a job from the booking for admin dashboard
+      await supabaseClient.from("jobs").insert({
+        property_id: null, // We'll link this later if needed
+        date: `${bookingData.startDate}T${bookingData.startTime || '10:00:00'}Z`,
+        price_cents: Math.round(bookingData.totalPrice * 100),
+        payout_cents: Math.round(bookingData.totalPrice * 100 * 0.7), // 70% payout
+        contractor_id: null, // Will be assigned later
+        is_first_clean: true,
+        city: bookingData.city,
+        status: 'New',
+        notes: `Booking #${booking.id} - ${bookingData.customerName} - ${bookingData.address}`
+      });
+
+      logStep("Setup session created and job created", { sessionId: session.id, url: session.url });
       
       return new Response(JSON.stringify({ 
         url: session.url,
@@ -205,6 +225,19 @@ serve(async (req) => {
           stripe_setup_intent_id: session.setup_intent
         })
         .eq("id", booking.id);
+
+      // Create a job from the booking for admin dashboard
+      await supabaseClient.from("jobs").insert({
+        property_id: null, // We'll link this later if needed
+        date: `${bookingData.startDate}T${bookingData.startTime || '10:00:00'}Z`,
+        price_cents: Math.round(bookingData.totalPrice * 100),
+        payout_cents: Math.round(bookingData.totalPrice * 100 * 0.7), // 70% payout
+        contractor_id: null, // Will be assigned later
+        is_first_clean: true,
+        city: bookingData.city,
+        status: 'New',
+        notes: `Booking #${booking.id} - ${bookingData.customerName} - ${bookingData.address}`
+      });
 
       logStep("Payment intent and session created", { 
         paymentIntentId: paymentIntent.id,
