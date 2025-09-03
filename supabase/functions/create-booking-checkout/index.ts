@@ -211,6 +211,52 @@ serve(async (req) => {
         sessionId: session.id,
         url: session.url
       });
+
+      // Send booking confirmation email
+      try {
+        logStep("Attempting to send booking confirmation email");
+        const emailPayload = {
+          bookingData: {
+            customerName: bookingData.customerName,
+            customerEmail: bookingData.customerEmail,
+            serviceType: bookingData.serviceType,
+            startDate: bookingData.startDate,
+            startTime: bookingData.startTime,
+            frequency: bookingData.frequency,
+            address: bookingData.address,
+            city: bookingData.city,
+            state: bookingData.state,
+            zipcode: bookingData.zipcode,
+            beds: bookingData.beds,
+            baths: bookingData.baths,
+            sqft: bookingData.sqft,
+            totalPrice: bookingData.totalPrice,
+            addOns: bookingData.addOns,
+            specialInstructions: bookingData.specialInstructions
+          },
+          bookingId: booking.id
+        };
+
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-booking-confirmation`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`
+          },
+          body: JSON.stringify(emailPayload)
+        });
+
+        if (emailResponse.ok) {
+          logStep("Confirmation email sent successfully");
+        } else {
+          const errorText = await emailResponse.text();
+          logStep("WARNING: Failed to send confirmation email", { error: errorText, status: emailResponse.status });
+        }
+      } catch (emailError) {
+        logStep("WARNING: Email sending failed", { error: emailError });
+        // Don't fail the booking if email fails
+      }
       
       return new Response(JSON.stringify({ 
         url: session.url,

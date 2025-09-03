@@ -176,13 +176,32 @@ const BookingFlow = () => {
         specialInstructions: bookingData.additionalNotes
       };
 
+      console.log('Starting booking submission...');
+      console.log('Booking payload:', JSON.stringify(bookingPayload, null, 2));
+      
       const { data, error } = await supabase.functions.invoke('create-booking-checkout', {
         body: bookingPayload
       });
 
-      if (error) throw new Error(error.message || 'Failed to create checkout session');
-      if (data.url) window.location.href = data.url;
-      else throw new Error('No checkout URL received');
+      console.log('Edge function response:', { data, error });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to create checkout session');
+      }
+      
+      if (!data) {
+        console.error('No data received from edge function');
+        throw new Error('No response data received');
+      }
+      
+      if (data.url) {
+        console.log('Redirecting to Stripe checkout:', data.url);
+        window.location.href = data.url;
+      } else {
+        console.error('No checkout URL in response:', data);
+        throw new Error('No checkout URL received from payment processor');
+      }
       
     } catch (error) {
       console.error('Booking submission error:', error);

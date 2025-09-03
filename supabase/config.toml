@@ -66,3 +66,6 @@ verify_jwt = false
 
 [functions.verify-booking-payment]
 verify_jwt = false
+
+[functions.send-booking-confirmation]
+verify_jwt = false
