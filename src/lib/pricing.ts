@@ -4,7 +4,15 @@
 export interface PricingInput {
   beds: number;
   baths: number;
+  halfBaths: number;
   sqft: number;
+  addOns: {
+    deepCleaning: boolean;
+    laundry: boolean;
+    insideFridge: boolean;
+    insideWindows: boolean;
+  };
+  frequency: 'one-time' | 'weekly' | 'bi-weekly' | 'tri-weekly' | 'monthly';
 }
 
 export interface PricingResult {
@@ -13,10 +21,32 @@ export interface PricingResult {
   breakdown: {
     basePrice: number;
     sqftSurcharge: number;
+    addOnsPrice: number;
+    discount: number;
+    finalPrice: number;
   };
 }
 
-export function calculatePrice(beds: number, baths: number, sqft: number): PricingResult {
+export const US_STATES = [
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 
+  'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 
+  'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 
+  'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 
+  'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 
+  'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 
+  'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
+] as const;
+
+export type USState = typeof US_STATES[number];
+
+export function calculatePrice(
+  beds: number, 
+  baths: number, 
+  halfBaths: number = 0,
+  sqft: number, 
+  addOns: PricingInput['addOns'] = { deepCleaning: false, laundry: false, insideFridge: false, insideWindows: false },
+  frequency: PricingInput['frequency'] = 'one-time'
+): PricingResult {
   // Handle custom quote case
   if (sqft >= 3000) {
     return {
@@ -25,14 +55,19 @@ export function calculatePrice(beds: number, baths: number, sqft: number): Prici
       breakdown: {
         basePrice: 0,
         sqftSurcharge: 0,
+        addOnsPrice: 0,
+        discount: 0,
+        finalPrice: 0,
       },
     };
   }
 
   let price = 0;
-  let sqftSurcharge = 0;
-
-  // Base pricing grid
+  
+  // New pricing rules - Base Price: $100 (1 bedroom, 1 bathroom, under 1000 sq ft)
+  // Add $30 per additional bedroom, $20 per additional bathroom
+  
+  // Base pricing grid as specified
   if (beds === 1) {
     switch (baths) {
       case 1: price = 100; break;
@@ -79,11 +114,15 @@ export function calculatePrice(beds: number, baths: number, sqft: number): Prici
       default: price = 220 + (baths - 1) * 20; break;
     }
   } else {
-    // Fallback calculation for 6+ bedrooms
+    // For 6+ bedrooms: Base $100 + (beds-1)*$30 + (baths-1)*$20
     price = 100 + (beds - 1) * 30 + (baths - 1) * 20;
   }
 
-  // Square footage surcharge
+  // Add half bathroom cost (assume $10 per half bath based on pattern)
+  price += halfBaths * 10;
+
+  // Square footage surcharge - updated ranges
+  let sqftSurcharge = 0;
   if (sqft >= 1000 && sqft < 1500) {
     sqftSurcharge = 25;
   } else if (sqft >= 1500 && sqft < 2000) {
@@ -94,8 +133,38 @@ export function calculatePrice(beds: number, baths: number, sqft: number): Prici
     sqftSurcharge = 100;
   }
 
+  // Add-ons pricing
+  let addOnsPrice = 0;
+  if (addOns.deepCleaning) addOnsPrice += 30;
+  if (addOns.laundry) addOnsPrice += 9;
+  if (addOns.insideFridge) addOnsPrice += 15;
+  if (addOns.insideWindows) addOnsPrice += 10;
+
   const basePrice = price;
-  const finalPrice = price + sqftSurcharge;
+  const subtotal = price + sqftSurcharge + addOnsPrice;
+
+  // Frequency discounts
+  let discount = 0;
+  let discountPercent = 0;
+  switch (frequency) {
+    case 'weekly':
+      discountPercent = 0.15; // 15% off
+      break;
+    case 'bi-weekly':
+      discountPercent = 0.10; // 10% off
+      break;
+    case 'tri-weekly':
+      discountPercent = 0.05; // 5% off
+      break;
+    case 'monthly':
+      discountPercent = 0.05; // 5% off
+      break;
+    default:
+      discountPercent = 0; // No discount for one-time
+  }
+  
+  discount = Math.round(subtotal * discountPercent);
+  const finalPrice = subtotal - discount;
 
   return {
     price: finalPrice,
@@ -103,6 +172,9 @@ export function calculatePrice(beds: number, baths: number, sqft: number): Prici
     breakdown: {
       basePrice,
       sqftSurcharge,
+      addOnsPrice,
+      discount,
+      finalPrice,
     },
   };
 }

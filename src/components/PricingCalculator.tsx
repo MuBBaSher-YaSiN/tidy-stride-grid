@@ -16,7 +16,7 @@ export function PricingCalculator({ onPriceChange }: PricingCalculatorProps) {
   const [pricingResult, setPricingResult] = useState<PricingResult | null>(null);
 
   useEffect(() => {
-    const result = calculatePrice(beds, baths, sqft);
+    const result = calculatePrice(beds, baths, 0, sqft); // 0 half baths, default add-ons and frequency
     setPricingResult(result);
     onPriceChange?.(result);
   }, [beds, baths, sqft, onPriceChange]);
@@ -92,6 +92,12 @@ export function PricingCalculator({ onPriceChange }: PricingCalculatorProps) {
                   <p>Base Price: {formatCurrency(pricingResult.breakdown.basePrice * 100)}</p>
                   {pricingResult.breakdown.sqftSurcharge > 0 && (
                     <p>Size Surcharge: {formatCurrency(pricingResult.breakdown.sqftSurcharge * 100)}</p>
+                  )}
+                  {pricingResult.breakdown.addOnsPrice > 0 && (
+                    <p>Add-ons: {formatCurrency(pricingResult.breakdown.addOnsPrice * 100)}</p>
+                  )}
+                  {pricingResult.breakdown.discount > 0 && (
+                    <p className="text-green-600">Discount: -{formatCurrency(pricingResult.breakdown.discount * 100)}</p>
                   )}
                 </div>
               </div>

@@ -7,20 +7,23 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, ArrowRight, Calendar, Home, User, Mail, Phone, MapPin } from "lucide-react";
-import { calculatePrice, formatCurrency, FLORIDA_CITIES, EARLIEST_CLEAN_DATE, type FloridaCity } from "@/lib/pricing";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, ArrowRight, Calendar, Home, User, Mail, Phone, MapPin, Plus, Clock } from "lucide-react";
+import { calculatePrice, formatCurrency, FLORIDA_CITIES, US_STATES, EARLIEST_CLEAN_DATE, type FloridaCity, type USState } from "@/lib/pricing";
 import { useToast } from "@/hooks/use-toast";
 
-type BookingStep = 'property' | 'service' | 'schedule' | 'contact' | 'payment';
+type BookingStep = 'property' | 'service' | 'schedule' | 'contact' | 'payment' | 'addons' | 'frequency' | 'info';
 
 interface BookingData {
   // Property details
   address1: string;
   address2: string;
   city: FloridaCity | '';
+  state: USState | '';
   zipcode: string;
   beds: number;
   baths: number;
+  halfBaths: number;
   sqft: number;
   
   // Service details  
@@ -30,11 +33,29 @@ interface BookingData {
   
   // Schedule
   startDate: string;
+  startTime: string;
   
   // Contact
   name: string;
   email: string;
   phone: string;
+  
+  // Add-ons
+  addOns: {
+    deepCleaning: boolean;
+    laundry: boolean;
+    insideFridge: boolean;
+    insideWindows: boolean;
+  };
+  
+  // Frequency
+  frequency: 'one-time' | 'weekly' | 'bi-weekly' | 'tri-weekly' | 'monthly';
+  
+  // Additional Info
+  parking: string;
+  flexibility: string;
+  access: string;
+  additionalNotes: string;
   
   // Pricing
   priceResult?: any;
@@ -46,16 +67,30 @@ const BookingFlow = () => {
     address1: '',
     address2: '',
     city: '',
+    state: '',
     zipcode: '',
     beds: 2,
     baths: 2,
+    halfBaths: 0,
     sqft: 1200,
     serviceType: '',
     months: 3,
     startDate: '',
+    startTime: '',
     name: '',
     email: '',
-    phone: ''
+    phone: '',
+    addOns: {
+      deepCleaning: false,
+      laundry: false,
+      insideFridge: false,
+      insideWindows: false,
+    },
+    frequency: 'one-time',
+    parking: '',
+    flexibility: '',
+    access: '',
+    additionalNotes: ''
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -67,7 +102,7 @@ const BookingFlow = () => {
   };
 
   const goToNextStep = () => {
-    const steps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'payment'];
+    const steps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'payment', 'addons', 'frequency', 'info'];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1]);
@@ -75,7 +110,7 @@ const BookingFlow = () => {
   };
 
   const goToPrevStep = () => {
-    const steps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'payment'];
+    const steps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'payment', 'addons', 'frequency', 'info'];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1]);
@@ -83,7 +118,14 @@ const BookingFlow = () => {
   };
 
   const calculateCurrentPrice = () => {
-    return calculatePrice(bookingData.beds, bookingData.baths, bookingData.sqft);
+    return calculatePrice(
+      bookingData.beds, 
+      bookingData.baths, 
+      bookingData.halfBaths,
+      bookingData.sqft, 
+      bookingData.addOns,
+      bookingData.frequency
+    );
   };
 
   const handleBookingSubmit = async () => {
@@ -135,7 +177,7 @@ const BookingFlow = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="beds">Bedrooms</Label>
             <Select value={bookingData.beds.toString()} onValueChange={(value) => updateBookingData({ beds: parseInt(value) })}>
@@ -158,6 +200,20 @@ const BookingFlow = () => {
               </SelectTrigger>
               <SelectContent>
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                  <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="halfBaths">Half Bathrooms</Label>
+            <Select value={bookingData.halfBaths.toString()} onValueChange={(value) => updateBookingData({ halfBaths: parseInt(value) })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[0, 1, 2, 3].map((num) => (
                   <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
                 ))}
               </SelectContent>
@@ -199,7 +255,21 @@ const BookingFlow = () => {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="state">State</Label>
+            <Select value={bookingData.state} onValueChange={(value: USState) => updateBookingData({ state: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select state" />
+              </SelectTrigger>
+              <SelectContent>
+                {US_STATES.map((state) => (
+                  <SelectItem key={state} value={state}>{state}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="city">City</Label>
             <Select value={bookingData.city} onValueChange={(value: FloridaCity) => updateBookingData({ city: value })}>
@@ -231,7 +301,7 @@ const BookingFlow = () => {
           <div className="mt-6 p-4 bg-gradient-hero rounded-lg">
             <div className="text-center">
               {(() => {
-                const result = calculatePrice(bookingData.beds, bookingData.baths, bookingData.sqft);
+                const result = calculateCurrentPrice();
                 return result.isCustomQuote ? (
                   <div>
                     <p className="text-lg font-semibold text-primary">Custom Quote Required</p>
@@ -329,19 +399,42 @@ const BookingFlow = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="startDate">Preferred Start Date</Label>
-          <Input
-            id="startDate"
-            type="date"
-            value={bookingData.startDate}
-            onChange={(e) => updateBookingData({ startDate: e.target.value })}
-            min={EARLIEST_CLEAN_DATE}
-            required
-          />
-          <p className="text-sm text-muted-foreground">
-            Earliest available date: {EARLIEST_CLEAN_DATE}
-          </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="startDate">Preferred Start Date</Label>
+            <Input
+              id="startDate"
+              type="date"
+              value={bookingData.startDate}
+              onChange={(e) => updateBookingData({ startDate: e.target.value })}
+              min={EARLIEST_CLEAN_DATE}
+              required
+            />
+            <p className="text-sm text-muted-foreground">
+              Earliest available date: {EARLIEST_CLEAN_DATE}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="startTime">Preferred Time</Label>
+            <Select value={bookingData.startTime} onValueChange={(value) => updateBookingData({ startTime: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select time" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="8:00 AM">8:00 AM</SelectItem>
+                <SelectItem value="9:00 AM">9:00 AM</SelectItem>
+                <SelectItem value="10:00 AM">10:00 AM</SelectItem>
+                <SelectItem value="11:00 AM">11:00 AM</SelectItem>
+                <SelectItem value="12:00 PM">12:00 PM</SelectItem>
+                <SelectItem value="1:00 PM">1:00 PM</SelectItem>
+                <SelectItem value="2:00 PM">2:00 PM</SelectItem>
+                <SelectItem value="3:00 PM">3:00 PM</SelectItem>
+                <SelectItem value="4:00 PM">4:00 PM</SelectItem>
+                <SelectItem value="5:00 PM">5:00 PM</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="p-4 bg-gradient-hero rounded-lg">
@@ -411,6 +504,321 @@ const BookingFlow = () => {
     </Card>
   );
 
+  const renderAddOnsStep = () => (
+    <Card className="bg-gradient-card shadow-card">
+      <CardHeader>
+        <CardTitle className="flex items-center text-primary">
+          <Plus className="h-5 w-5 mr-2" />
+          Select Add-Ons
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Checkbox 
+                id="deepCleaning"
+                checked={bookingData.addOns.deepCleaning}
+                onCheckedChange={(checked) => 
+                  updateBookingData({ 
+                    addOns: { ...bookingData.addOns, deepCleaning: checked as boolean }
+                  })
+                }
+              />
+              <div>
+                <Label htmlFor="deepCleaning" className="font-medium cursor-pointer">Deep Cleaning</Label>
+                <p className="text-sm text-muted-foreground">Detailed cleaning for a thorough clean</p>
+              </div>
+            </div>
+            <span className="font-semibold text-primary">+$30</span>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Checkbox 
+                id="laundry"
+                checked={bookingData.addOns.laundry}
+                onCheckedChange={(checked) => 
+                  updateBookingData({ 
+                    addOns: { ...bookingData.addOns, laundry: checked as boolean }
+                  })
+                }
+              />
+              <div>
+                <Label htmlFor="laundry" className="font-medium cursor-pointer">Laundry</Label>
+                <p className="text-sm text-muted-foreground">Wash, dry, and fold your laundry</p>
+              </div>
+            </div>
+            <span className="font-semibold text-primary">+$9</span>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Checkbox 
+                id="insideFridge"
+                checked={bookingData.addOns.insideFridge}
+                onCheckedChange={(checked) => 
+                  updateBookingData({ 
+                    addOns: { ...bookingData.addOns, insideFridge: checked as boolean }
+                  })
+                }
+              />
+              <div>
+                <Label htmlFor="insideFridge" className="font-medium cursor-pointer">Inside the Fridge</Label>
+                <p className="text-sm text-muted-foreground">Clean inside your refrigerator</p>
+              </div>
+            </div>
+            <span className="font-semibold text-primary">+$15</span>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Checkbox 
+                id="insideWindows"
+                checked={bookingData.addOns.insideWindows}
+                onCheckedChange={(checked) => 
+                  updateBookingData({ 
+                    addOns: { ...bookingData.addOns, insideWindows: checked as boolean }
+                  })
+                }
+              />
+              <div>
+                <Label htmlFor="insideWindows" className="font-medium cursor-pointer">Inside Windows</Label>
+                <p className="text-sm text-muted-foreground">Clean interior window surfaces</p>
+              </div>
+            </div>
+            <span className="font-semibold text-primary">+$10</span>
+          </div>
+        </div>
+
+        {/* Price Preview */}
+        <div className="mt-6 p-4 bg-gradient-hero rounded-lg">
+          <div className="text-center">
+            {(() => {
+              const result = calculateCurrentPrice();
+              return result.isCustomQuote ? (
+                <div>
+                  <p className="text-lg font-semibold text-primary">Custom Quote Required</p>
+                  <p className="text-sm text-muted-foreground">Properties over 3,000 sq ft require a custom quote</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(result.price * 100)}</p>
+                  <p className="text-sm text-muted-foreground">per cleaning</p>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderFrequencyStep = () => (
+    <Card className="bg-gradient-card shadow-card">
+      <CardHeader>
+        <CardTitle className="flex items-center text-primary">
+          <Clock className="h-5 w-5 mr-2" />
+          How Often?
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-4">
+          <RadioGroup 
+            value={bookingData.frequency} 
+            onValueChange={(value: BookingData['frequency']) => updateBookingData({ frequency: value })}
+          >
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center space-x-3">
+                <RadioGroupItem value="one-time" id="one-time" />
+                <div>
+                  <Label htmlFor="one-time" className="font-medium cursor-pointer">One Time</Label>
+                  <p className="text-sm text-muted-foreground">Single cleaning service</p>
+                </div>
+              </div>
+              <span className="font-semibold text-muted-foreground">No discount</span>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center space-x-3">
+                <RadioGroupItem value="weekly" id="weekly" />
+                <div>
+                  <Label htmlFor="weekly" className="font-medium cursor-pointer">Every Week</Label>
+                  <p className="text-sm text-muted-foreground">Weekly cleaning service</p>
+                </div>
+              </div>
+              <span className="font-semibold text-green-600">15% off</span>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center space-x-3">
+                <RadioGroupItem value="bi-weekly" id="bi-weekly" />
+                <div>
+                  <Label htmlFor="bi-weekly" className="font-medium cursor-pointer">Every 2 Weeks</Label>
+                  <p className="text-sm text-muted-foreground">Bi-weekly cleaning service</p>
+                </div>
+              </div>
+              <span className="font-semibold text-green-600">10% off</span>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center space-x-3">
+                <RadioGroupItem value="tri-weekly" id="tri-weekly" />
+                <div>
+                  <Label htmlFor="tri-weekly" className="font-medium cursor-pointer">Every 3 Weeks</Label>
+                  <p className="text-sm text-muted-foreground">Tri-weekly cleaning service</p>
+                </div>
+              </div>
+              <span className="font-semibold text-green-600">5% off</span>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center space-x-3">
+                <RadioGroupItem value="monthly" id="monthly" />
+                <div>
+                  <Label htmlFor="monthly" className="font-medium cursor-pointer">Every 4 Weeks</Label>
+                  <p className="text-sm text-muted-foreground">Monthly cleaning service</p>
+                </div>
+              </div>
+              <span className="font-semibold text-green-600">5% off</span>
+            </div>
+          </RadioGroup>
+        </div>
+
+        {/* Price Preview */}
+        <div className="mt-6 p-4 bg-gradient-hero rounded-lg">
+          <div className="text-center">
+            {(() => {
+              const result = calculateCurrentPrice();
+              return result.isCustomQuote ? (
+                <div>
+                  <p className="text-lg font-semibold text-primary">Custom Quote Required</p>
+                  <p className="text-sm text-muted-foreground">Properties over 3,000 sq ft require a custom quote</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(result.price * 100)}</p>
+                  <p className="text-sm text-muted-foreground">per cleaning</p>
+                  {result.breakdown.discount > 0 && (
+                    <p className="text-sm text-green-600 font-medium">
+                      You save {formatCurrency(result.breakdown.discount * 100)} per cleaning!
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderAdditionalInfoStep = () => (
+    <Card className="bg-gradient-card shadow-card">
+      <CardHeader>
+        <CardTitle className="flex items-center text-primary">
+          <MapPin className="h-5 w-5 mr-2" />
+          Additional Information
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <Label>Where can your cleaners park? *</Label>
+          <RadioGroup 
+            value={bookingData.parking} 
+            onValueChange={(value) => updateBookingData({ parking: value })}
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="street" id="street" />
+              <Label htmlFor="street" className="cursor-pointer">Street parking</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="driveway" id="driveway" />
+              <Label htmlFor="driveway" className="cursor-pointer">Driveway</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="garage" id="garage" />
+              <Label htmlFor="garage" className="cursor-pointer">Garage</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="parking-lot" id="parking-lot" />
+              <Label htmlFor="parking-lot" className="cursor-pointer">Parking lot</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="no-parking" id="no-parking" />
+              <Label htmlFor="no-parking" className="cursor-pointer">No parking available</Label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Is your day/time flexible? *</Label>
+          <RadioGroup 
+            value={bookingData.flexibility} 
+            onValueChange={(value) => updateBookingData({ flexibility: value })}
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="exact" id="exact" />
+              <Label htmlFor="exact" className="cursor-pointer">No, I need the exact day/time</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="flexible" id="flexible" />
+              <Label htmlFor="flexible" className="cursor-pointer">Yes, my schedule is flexible</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="somewhat" id="somewhat" />
+              <Label htmlFor="somewhat" className="cursor-pointer">Somewhat flexible (+/- 2 hours)</Label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        <div className="space-y-2">
+          <Label>How can your cleaners get inside your home? *</Label>
+          <RadioGroup 
+            value={bookingData.access} 
+            onValueChange={(value) => updateBookingData({ access: value })}
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="home" id="home" />
+              <Label htmlFor="home" className="cursor-pointer">I will be home</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="doorman" id="doorman" />
+              <Label htmlFor="doorman" className="cursor-pointer">Doorman</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="lockbox" id="lockbox" />
+              <Label htmlFor="lockbox" className="cursor-pointer">Key in lockbox</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="smart-lock" id="smart-lock" />
+              <Label htmlFor="smart-lock" className="cursor-pointer">Smart lock code</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="hide-key" id="hide-key" />
+              <Label htmlFor="hide-key" className="cursor-pointer">Hide key somewhere</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="neighbor" id="neighbor" />
+              <Label htmlFor="neighbor" className="cursor-pointer">Neighbor/friend will let them in</Label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="additionalNotes">Anything else your cleaners should know about?</Label>
+          <Textarea
+            id="additionalNotes"
+            value={bookingData.additionalNotes}
+            onChange={(e) => updateBookingData({ additionalNotes: e.target.value })}
+            placeholder="Please let us know about pets, special instructions, areas to focus on, or anything else that would help our cleaners do their best work..."
+            rows={4}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   const renderPaymentStep = () => {
     const priceResult = calculateCurrentPrice();
     
@@ -426,19 +834,23 @@ const BookingFlow = () => {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Property:</span>
-                <span>{bookingData.address1}, {bookingData.city}</span>
+                <span>{bookingData.address1}, {bookingData.city}, {bookingData.state}</span>
               </div>
               <div className="flex justify-between">
                 <span>Size:</span>
-                <span>{bookingData.beds} bed, {bookingData.baths} bath, {bookingData.sqft} sq ft</span>
+                <span>{bookingData.beds} bed, {bookingData.baths} bath, {bookingData.halfBaths} half bath, {bookingData.sqft} sq ft</span>
               </div>
               <div className="flex justify-between">
                 <span>Service:</span>
                 <span>{bookingData.serviceType} ({bookingData.months} months)</span>
               </div>
               <div className="flex justify-between">
-                <span>Start Date:</span>
-                <span>{bookingData.startDate}</span>
+                <span>Schedule:</span>
+                <span>{bookingData.startDate} at {bookingData.startTime}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Frequency:</span>
+                <span>{bookingData.frequency.replace('-', ' ')}</span>
               </div>
             </div>
           </div>
@@ -461,6 +873,18 @@ const BookingFlow = () => {
                   <div className="flex justify-between">
                     <span>Size Surcharge:</span>
                     <span>{formatCurrency(priceResult.breakdown.sqftSurcharge * 100)}</span>
+                  </div>
+                )}
+                {priceResult.breakdown.addOnsPrice > 0 && (
+                  <div className="flex justify-between">
+                    <span>Add-ons:</span>
+                    <span>{formatCurrency(priceResult.breakdown.addOnsPrice * 100)}</span>
+                  </div>
+                )}
+                {priceResult.breakdown.discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Frequency Discount:</span>
+                    <span>-{formatCurrency(priceResult.breakdown.discount * 100)}</span>
                   </div>
                 )}
                 <hr className="my-2" />
@@ -495,6 +919,9 @@ const BookingFlow = () => {
       case 'service': return renderServiceStep();
       case 'schedule': return renderScheduleStep();
       case 'contact': return renderContactStep();
+      case 'addons': return renderAddOnsStep();
+      case 'frequency': return renderFrequencyStep();
+      case 'info': return renderAdditionalInfoStep();
       case 'payment': return renderPaymentStep();
       default: return renderPropertyStep();
     }
@@ -503,19 +930,28 @@ const BookingFlow = () => {
   const canProceed = () => {
     switch (currentStep) {
       case 'property':
-        return bookingData.address1 && bookingData.city && bookingData.zipcode && bookingData.beds && bookingData.baths && bookingData.sqft;
+        return bookingData.address1 && bookingData.city && bookingData.state && bookingData.zipcode && bookingData.beds && bookingData.baths && bookingData.sqft;
       case 'service':
         return bookingData.serviceType && bookingData.months;
       case 'schedule':
-        return bookingData.startDate;
+        return bookingData.startDate && bookingData.startTime;
       case 'contact':
         return bookingData.name && bookingData.email && bookingData.phone;
+      case 'addons':
+        return true; // Add-ons are optional
+      case 'frequency':
+        return bookingData.frequency;
+      case 'info':
+        return bookingData.parking && bookingData.flexibility && bookingData.access;
       case 'payment':
         return true;
       default:
         return false;
     }
   };
+
+  const steps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'addons', 'frequency', 'info', 'payment'];
+  const stepNames = ['Property', 'Service', 'Schedule', 'Contact', 'Add-ons', 'Frequency', 'Info', 'Payment'];
 
   return (
     <div className="min-h-screen bg-gradient-hero">
@@ -529,7 +965,7 @@ const BookingFlow = () => {
             </Link>
             <div className="text-center">
               <h1 className="text-2xl font-bold text-primary">Book Your Cleaning</h1>
-              <p className="text-sm text-muted-foreground">Step {['property', 'service', 'schedule', 'contact', 'payment'].indexOf(currentStep) + 1} of 5</p>
+              <p className="text-sm text-muted-foreground">Step {steps.indexOf(currentStep) + 1} of {steps.length}</p>
             </div>
             <div className="w-20"></div>
           </div>
@@ -539,18 +975,18 @@ const BookingFlow = () => {
       {/* Progress Bar */}
       <div className="max-w-4xl mx-auto px-6 py-4">
         <div className="flex justify-between mb-2">
-          {(['property', 'service', 'schedule', 'contact', 'payment'] as BookingStep[]).map((step, index) => (
+          {steps.map((step, index) => (
             <div key={step} className="flex items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                ['property', 'service', 'schedule', 'contact', 'payment'].indexOf(currentStep) >= index
+                steps.indexOf(currentStep) >= index
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
               }`}>
                 {index + 1}
               </div>
-              {index < 4 && (
+              {index < steps.length - 1 && (
                 <div className={`w-12 h-1 mx-2 rounded ${
-                  ['property', 'service', 'schedule', 'contact', 'payment'].indexOf(currentStep) > index
+                  steps.indexOf(currentStep) > index
                     ? 'bg-primary'
                     : 'bg-muted'
                 }`} />
