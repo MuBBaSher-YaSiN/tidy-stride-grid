@@ -197,7 +197,13 @@ const BookingFlow = () => {
       
       if (data.url) {
         console.log('Redirecting to Stripe checkout:', data.url);
-        window.location.href = data.url;
+        console.log('About to redirect, current URL:', window.location.href);
+        
+        // Add a small delay to ensure state is updated before redirect
+        setTimeout(() => {
+          console.log('Executing redirect to:', data.url);
+          window.location.href = data.url;
+        }, 100);
       } else {
         console.error('No checkout URL in response:', data);
         throw new Error('No checkout URL received from payment processor');
@@ -205,12 +211,27 @@ const BookingFlow = () => {
       
     } catch (error) {
       console.error('Booking submission error:', error);
-      toast({
-        title: "Booking Failed",
-        description: error instanceof Error ? error.message : "There was an error processing your booking. Please try again.",
-        variant: "destructive",
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        name: error instanceof Error ? error.name : 'Unknown',
+        type: typeof error,
+        errorObj: error
       });
+      
+      try {
+        toast({
+          title: "Booking Failed",
+          description: error instanceof Error ? error.message : "There was an error processing your booking. Please try again.",
+          variant: "destructive",
+        });
+      } catch (toastError) {
+        console.error('Toast error:', toastError);
+        // Fallback: use alert if toast fails
+        alert('Booking failed: ' + (error instanceof Error ? error.message : "There was an error processing your booking. Please try again."));
+      }
     } finally {
+      console.log('Setting isLoading to false');
       setIsLoading(false);
     }
   };
