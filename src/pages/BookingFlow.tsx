@@ -69,10 +69,10 @@ const BookingFlow = () => {
     city: '',
     state: '',
     zipcode: '',
-    beds: 2,
-    baths: 2,
+    beds: 1,
+    baths: 1,
     halfBaths: 0,
-    sqft: 1200,
+    sqft: 800,
     serviceType: '',
     months: 3,
     startDate: '',
@@ -102,7 +102,7 @@ const BookingFlow = () => {
   };
 
   const goToNextStep = () => {
-    const steps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'payment', 'addons', 'frequency', 'info'];
+    const steps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'addons', 'frequency', 'info', 'payment'];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1]);
@@ -110,7 +110,7 @@ const BookingFlow = () => {
   };
 
   const goToPrevStep = () => {
-    const steps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'payment', 'addons', 'frequency', 'info'];
+    const steps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'addons', 'frequency', 'info', 'payment'];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1]);
