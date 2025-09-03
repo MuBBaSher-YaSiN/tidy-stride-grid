@@ -8,61 +8,61 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { 
   ArrowLeft,
+  Calendar,
   DollarSign,
-  Clock,
+  MapPin,
   CheckCircle,
+  X,
   User,
-  Calendar
+  Clock
 } from "lucide-react";
 
-interface PaymentEvent {
+interface PaymentRequest {
   id: string;
-  type: string;
-  status: string;
+  job_id: string;
+  contractor_id: string;
   amount_cents: number;
-  created_at: string;
-  error_message?: string;
-  jobs?: {
+  status: string;
+  requested_at: string;
+  jobs: {
     date: string;
-    properties?: {
-      address1: string;
-    };
-    contractors?: {
-      name: string;
-    };
+    city: string;
+    notes: string;
+    status: string;
+  };
+  contractors: {
+    name: string;
+    email: string;
   };
 }
 
 const PaymentManagement = () => {
-  const [payments, setPayments] = useState<PaymentEvent[]>([]);
+  const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchPayments();
+    fetchPaymentRequests();
   }, []);
 
-  const fetchPayments = async () => {
+  const fetchPaymentRequests = async () => {
     try {
       const { data, error } = await supabase
-        .from('payment_events')
+        .from('payment_requests')
         .select(`
           *,
-          jobs (
-            date,
-            properties (address1),
-            contractors (name)
-          )
+          jobs (date, city, notes, status),
+          contractors (name, email)
         `)
-        .order('created_at', { ascending: false });
+        .order('requested_at', { ascending: false });
 
       if (error) throw error;
-      setPayments(data || []);
+      setPaymentRequests(data || []);
     } catch (error) {
-      console.error('Error fetching payments:', error);
+      console.error('Error fetching payment requests:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch payments",
+        description: "Failed to fetch payment requests",
         variant: "destructive"
       });
     } finally {
@@ -70,26 +70,36 @@ const PaymentManagement = () => {
     }
   };
 
-  const processPayment = async (paymentId: string) => {
+  const updatePaymentStatus = async (requestId: string, newStatus: string) => {
     try {
+      const updateData: any = { 
+        status: newStatus 
+      };
+      
+      if (newStatus === 'approved') {
+        updateData.approved_at = new Date().toISOString();
+      } else if (newStatus === 'paid') {
+        updateData.paid_at = new Date().toISOString();
+      }
+
       const { error } = await supabase
-        .from('payment_events')
-        .update({ status: 'completed' })
-        .eq('id', paymentId);
+        .from('payment_requests')
+        .update(updateData)
+        .eq('id', requestId);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Payment processed successfully"
+        description: `Payment ${newStatus} successfully`
       });
 
-      fetchPayments();
+      fetchPaymentRequests();
     } catch (error) {
-      console.error('Error processing payment:', error);
+      console.error('Error updating payment:', error);
       toast({
         title: "Error",
-        description: "Failed to process payment",
+        description: "Failed to update payment status",
         variant: "destructive"
       });
     }
@@ -99,27 +109,19 @@ const PaymentManagement = () => {
     switch (status.toLowerCase()) {
       case 'pending':
         return <Badge variant="secondary">Pending</Badge>;
-      case 'completed':
-        return <Badge variant="default">Completed</Badge>;
-      case 'failed':
-        return <Badge variant="destructive">Failed</Badge>;
+      case 'approved':
+        return <Badge variant="default">Approved</Badge>;
+      case 'paid':
+        return <Badge variant="outline">Paid</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Rejected</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  const getTypeBadge = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'payout':
-        return <Badge variant="outline">Contractor Payout</Badge>;
-      case 'payment':
-        return <Badge variant="secondary">Customer Payment</Badge>;
-      default:
-        return <Badge variant="outline">{type}</Badge>;
-    }
-  };
-
-  const pendingPayments = payments.filter(payment => payment.status.toLowerCase() === 'pending');
+  const pendingPayments = paymentRequests.filter(req => req.status === 'pending');
+  const approvedPayments = paymentRequests.filter(req => req.status === 'approved');
 
   return (
     <div className="min-h-screen bg-gradient-hero">
@@ -136,7 +138,7 @@ const PaymentManagement = () => {
               </Link>
               <div>
                 <h1 className="text-2xl font-bold text-primary">Payment Management</h1>
-                <p className="text-sm text-muted-foreground">Process contractor payouts and customer payments</p>
+                <p className="text-sm text-muted-foreground">Process contractor payments</p>
               </div>
             </div>
           </div>
@@ -149,76 +151,158 @@ const PaymentManagement = () => {
           <CardHeader>
             <CardTitle className="text-primary flex items-center">
               <Clock className="h-5 w-5 mr-2" />
-              Pending Payments ({pendingPayments.length})
+              Pending Payment Requests ({pendingPayments.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-8">Loading payments...</div>
+              <div className="text-center py-8">Loading payment requests...</div>
             ) : pendingPayments.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No pending payments found.
+                No pending payment requests found.
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Amount</TableHead>
                     <TableHead>Contractor</TableHead>
-                    <TableHead>Job</TableHead>
+                    <TableHead>Job Details</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Requested</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pendingPayments.map((payment) => (
-                    <TableRow key={payment.id}>
+                  {pendingPayments.map((request) => (
+                    <TableRow key={request.id}>
                       <TableCell>
                         <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                          {new Date(payment.created_at).toLocaleDateString()}
+                          <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <div>
+                            <div className="font-medium">{request.contractors.name}</div>
+                            <div className="text-sm text-muted-foreground">{request.contractors.email}</div>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {getTypeBadge(payment.type)}
+                        <div>
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {new Date(request.jobs.date).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center mt-1">
+                            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {request.jobs.city}
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            Status: {request.jobs.status}
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center">
                           <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                          ${(payment.amount_cents / 100).toFixed(2)}
+                          ${(request.amount_cents / 100).toFixed(2)}
                         </div>
                       </TableCell>
                       <TableCell>
-                        {payment.jobs?.contractors ? (
-                          <div className="flex items-center">
-                            <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                            {payment.jobs.contractors.name}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">N/A</span>
-                        )}
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                          {new Date(request.requested_at).toLocaleDateString()}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        {payment.jobs ? (
+                        <div className="flex space-x-2">
+                          <CleanNamiButton 
+                            variant="success" 
+                            size="sm"
+                            onClick={() => updatePaymentStatus(request.id, 'approved')}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Approve
+                          </CleanNamiButton>
+                          <CleanNamiButton 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => updatePaymentStatus(request.id, 'rejected')}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Reject
+                          </CleanNamiButton>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Approved Payments Section */}
+        <Card className="bg-gradient-card shadow-card">
+          <CardHeader>
+            <CardTitle className="text-primary flex items-center">
+              <CheckCircle className="h-5 w-5 mr-2" />
+              Approved Payments ({approvedPayments.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {approvedPayments.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No approved payments found.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Contractor</TableHead>
+                    <TableHead>Job Details</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {approvedPayments.map((request) => (
+                    <TableRow key={request.id}>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 mr-2 text-muted-foreground" />
                           <div>
-                            <div className="font-medium">{payment.jobs.properties?.address1 || 'N/A'}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {new Date(payment.jobs.date).toLocaleDateString()}
-                            </div>
+                            <div className="font-medium">{request.contractors.name}</div>
+                            <div className="text-sm text-muted-foreground">{request.contractors.email}</div>
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground">N/A</span>
-                        )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {new Date(request.jobs.date).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center mt-1">
+                            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {request.jobs.city}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                          ${(request.amount_cents / 100).toFixed(2)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(request.status)}
                       </TableCell>
                       <TableCell>
                         <CleanNamiButton 
-                          variant="success" 
+                          variant="hero" 
                           size="sm"
-                          onClick={() => processPayment(payment.id)}
+                          onClick={() => updatePaymentStatus(request.id, 'paid')}
                         >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Process
+                          Mark as Paid
                         </CleanNamiButton>
                       </TableCell>
                     </TableRow>
@@ -229,70 +313,68 @@ const PaymentManagement = () => {
           </CardContent>
         </Card>
 
-        {/* All Payments Section */}
+        {/* All Payment History */}
         <Card className="bg-gradient-card shadow-card">
           <CardHeader>
             <CardTitle className="text-primary flex items-center">
               <DollarSign className="h-5 w-5 mr-2" />
-              Payment History ({payments.length})
+              All Payment History ({paymentRequests.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {payments.length === 0 ? (
+            {paymentRequests.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No payments found.
+                No payment requests found.
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Amount</TableHead>
                     <TableHead>Contractor</TableHead>
+                    <TableHead>Job Details</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Requested</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Error</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {payments.map((payment) => (
-                    <TableRow key={payment.id}>
+                  {paymentRequests.map((request) => (
+                    <TableRow key={request.id}>
                       <TableCell>
                         <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                          {new Date(payment.created_at).toLocaleDateString()}
+                          <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <div>
+                            <div className="font-medium">{request.contractors.name}</div>
+                            <div className="text-sm text-muted-foreground">{request.contractors.email}</div>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {getTypeBadge(payment.type)}
+                        <div>
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {new Date(request.jobs.date).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center mt-1">
+                            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {request.jobs.city}
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center">
                           <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                          ${(payment.amount_cents / 100).toFixed(2)}
+                          ${(request.amount_cents / 100).toFixed(2)}
                         </div>
                       </TableCell>
                       <TableCell>
-                        {payment.jobs?.contractors ? (
-                          <div className="flex items-center">
-                            <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                            {payment.jobs.contractors.name}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">N/A</span>
-                        )}
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                          {new Date(request.requested_at).toLocaleDateString()}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(payment.status)}
-                      </TableCell>
-                      <TableCell>
-                        {payment.error_message ? (
-                          <Badge variant="destructive" className="text-xs">
-                            {payment.error_message.substring(0, 20)}...
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">None</span>
-                        )}
+                        {getStatusBadge(request.status)}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -10,6 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ContractorManagement from "./pages/ContractorManagement";
 import JobManagement from "./pages/JobManagement";
 import PaymentManagement from "./pages/PaymentManagement";
+import ContractorDashboard from "./pages/ContractorDashboard";
 import BookingFlow from "./pages/BookingFlow";
 import BookingSuccess from "./pages/BookingSuccess";
 import BookingCancelled from "./pages/BookingCancelled";
@@ -26,6 +27,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/contractor" element={<ContractorAuth />} />
+          <Route path="/contractor/dashboard" element={<ContractorDashboard />} />
           <Route path="/admin" element={<AdminAuth />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/contractors" element={<ContractorManagement />} />

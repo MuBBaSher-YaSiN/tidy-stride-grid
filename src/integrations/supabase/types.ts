@@ -217,7 +217,12 @@ export type Database = {
       }
       jobs: {
         Row: {
+          admin_approved_at: string | null
+          admin_rejected_at: string | null
           city: string | null
+          claimed_at: string | null
+          claimed_by: string | null
+          completed_at: string | null
           contractor_id: string | null
           created_at: string | null
           date: string
@@ -228,12 +233,19 @@ export type Database = {
           payout_cents: number
           price_cents: number
           property_id: string | null
+          rejection_reason: string | null
           status: string | null
+          submitted_at: string | null
           subscription_id: string | null
           updated_at: string | null
         }
         Insert: {
+          admin_approved_at?: string | null
+          admin_rejected_at?: string | null
           city?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
           contractor_id?: string | null
           created_at?: string | null
           date: string
@@ -244,12 +256,19 @@ export type Database = {
           payout_cents: number
           price_cents: number
           property_id?: string | null
+          rejection_reason?: string | null
           status?: string | null
+          submitted_at?: string | null
           subscription_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          admin_approved_at?: string | null
+          admin_rejected_at?: string | null
           city?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
           contractor_id?: string | null
           created_at?: string | null
           date?: string
@@ -260,11 +279,20 @@ export type Database = {
           payout_cents?: number
           price_cents?: number
           property_id?: string | null
+          rejection_reason?: string | null
           status?: string | null
+          submitted_at?: string | null
           subscription_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "jobs_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "jobs_contractor_id_fkey"
             columns: ["contractor_id"]
@@ -371,6 +399,60 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_requests: {
+        Row: {
+          amount_cents: number
+          approved_at: string | null
+          contractor_id: string
+          created_at: string
+          id: string
+          job_id: string
+          paid_at: string | null
+          requested_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          approved_at?: string | null
+          contractor_id: string
+          created_at?: string
+          id?: string
+          job_id: string
+          paid_at?: string | null
+          requested_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          approved_at?: string | null
+          contractor_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          paid_at?: string | null
+          requested_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_requests_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
         ]

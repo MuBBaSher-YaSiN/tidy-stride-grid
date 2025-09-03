@@ -1,0 +1,484 @@
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { CleanNamiButton } from "@/components/ui/button-variants";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Shield, 
+  Calendar, 
+  DollarSign, 
+  MapPin,
+  LogOut,
+  CheckCircle,
+  Clock,
+  TrendingUp,
+  HandIcon,
+  Send
+} from "lucide-react";
+
+interface Job {
+  id: string;
+  date: string;
+  status: string;
+  price_cents: number;
+  payout_cents: number;
+  city: string;
+  notes?: string;
+  claimed_by?: string;
+  contractor_id?: string;
+  claimed_at?: string;
+  completed_at?: string;
+  submitted_at?: string;
+}
+
+interface Stats {
+  availableJobs: number;
+  myJobs: number;
+  completedJobs: number;
+  totalEarnings: number;
+}
+
+const ContractorDashboard = () => {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [myJobs, setMyJobs] = useState<Job[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    availableJobs: 0,
+    myJobs: 0,
+    completedJobs: 0,
+    totalEarnings: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    getCurrentUser();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchJobs();
+      fetchMyJobs();
+    }
+  }, [user]);
+
+  const getCurrentUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    } catch (error) {
+      console.error('Error getting user:', error);
+    }
+  };
+
+  const fetchJobs = async () => {
+    try {
+      if (!user?.id) return;
+
+      // Get contractor info to filter by city
+      const { data: contractor } = await supabase
+        .from('contractors')
+        .select('city')
+        .eq('id', user.id)
+        .single();
+
+      if (!contractor) return;
+
+      // Fetch available jobs in the contractor's city
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('status', 'New')
+        .eq('city', contractor.city)
+        .is('contractor_id', null)
+        .is('claimed_by', null);
+
+      if (error) throw error;
+      setJobs(data || []);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+    }
+  };
+
+  const fetchMyJobs = async () => {
+    try {
+      if (!user?.id) return;
+
+      // Fetch jobs claimed or assigned to this contractor
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .or(`contractor_id.eq.${user.id},claimed_by.eq.${user.id}`)
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+      
+      const myJobsData = data || [];
+      setMyJobs(myJobsData);
+
+      // Calculate stats
+      const completedJobs = myJobsData.filter(job => job.status === 'Completed').length;
+      const totalEarnings = myJobsData
+        .filter(job => job.status === 'Completed')
+        .reduce((sum, job) => sum + (job.payout_cents / 100), 0);
+
+      setStats({
+        availableJobs: jobs.length,
+        myJobs: myJobsData.length,
+        completedJobs,
+        totalEarnings
+      });
+    } catch (error) {
+      console.error('Error fetching my jobs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const claimJob = async (jobId: string) => {
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ 
+          claimed_by: user.id, 
+          claimed_at: new Date().toISOString(),
+          status: 'Claimed'
+        })
+        .eq('id', jobId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Job claimed successfully! Wait for admin assignment."
+      });
+
+      fetchJobs();
+      fetchMyJobs();
+    } catch (error) {
+      console.error('Error claiming job:', error);
+      toast({
+        title: "Error",
+        description: "Failed to claim job",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const updateJobStatus = async (jobId: string, newStatus: string) => {
+    try {
+      const updateData: any = { status: newStatus };
+      
+      if (newStatus === 'InProgress') {
+        // Job started
+      } else if (newStatus === 'Submitted') {
+        updateData.submitted_at = new Date().toISOString();
+        updateData.completed_at = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from('jobs')
+        .update(updateData)
+        .eq('id', jobId);
+
+      if (error) throw error;
+
+      // If job is submitted, create payment request
+      if (newStatus === 'Submitted') {
+        const job = myJobs.find(j => j.id === jobId);
+        if (job) {
+          const { error: paymentError } = await supabase
+            .from('payment_requests')
+            .insert({
+              job_id: jobId,
+              contractor_id: user.id,
+              amount_cents: job.payout_cents,
+              status: 'pending'
+            });
+
+          if (paymentError) {
+            console.error('Error creating payment request:', paymentError);
+          }
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: `Job status updated to ${newStatus}`
+      });
+
+      fetchMyJobs();
+    } catch (error) {
+      console.error('Error updating job:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update job status",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'new':
+        return <Badge variant="secondary">New</Badge>;
+      case 'claimed':
+        return <Badge variant="outline">Claimed</Badge>;
+      case 'assigned':
+        return <Badge variant="default">Assigned</Badge>;
+      case 'inprogress':
+        return <Badge variant="outline">In Progress</Badge>;
+      case 'submitted':
+        return <Badge variant="secondary">Submitted</Badge>;
+      case 'completed':
+        return <Badge variant="default">Completed</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const getJobActions = (job: Job) => {
+    switch (job.status) {
+      case 'Assigned':
+        return (
+          <CleanNamiButton 
+            variant="success" 
+            size="sm"
+            onClick={() => updateJobStatus(job.id, 'InProgress')}
+          >
+            Start Job
+          </CleanNamiButton>
+        );
+      case 'InProgress':
+        return (
+          <CleanNamiButton 
+            variant="hero" 
+            size="sm"
+            onClick={() => updateJobStatus(job.id, 'Submitted')}
+          >
+            <Send className="h-4 w-4 mr-1" />
+            Submit Completed
+          </CleanNamiButton>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-hero">
+      {/* Navigation */}
+      <nav className="bg-card shadow-card border-b">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <Shield className="h-8 w-8 text-primary" />
+              <div>
+                <h1 className="text-2xl font-bold text-primary">Contractor Dashboard</h1>
+                <p className="text-sm text-muted-foreground">Manage your cleaning jobs</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Badge variant="secondary" className="px-3 py-1">
+                Contractor
+              </Badge>
+              <Link to="/contractor">
+                <CleanNamiButton variant="ghost" size="sm">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </CleanNamiButton>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Dashboard Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gradient-card shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Available Jobs</CardTitle>
+              <HandIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">{stats.availableJobs}</div>
+              <p className="text-xs text-muted-foreground">
+                Ready to claim
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-card shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">My Jobs</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">{stats.myJobs}</div>
+              <p className="text-xs text-muted-foreground">
+                Active & completed
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-card shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Completed Jobs</CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">{stats.completedJobs}</div>
+              <p className="text-xs text-muted-foreground">
+                Successfully finished
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-card shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">${stats.totalEarnings.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">
+                From completed jobs
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Available Jobs */}
+          <Card className="bg-gradient-card shadow-card">
+            <CardHeader>
+              <CardTitle className="text-primary flex items-center">
+                <HandIcon className="h-5 w-5 mr-2" />
+                Available Jobs ({jobs.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-8">Loading jobs...</div>
+              ) : jobs.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No available jobs in your area.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>City</TableHead>
+                      <TableHead>Payout</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {jobs.map((job) => (
+                      <TableRow key={job.id}>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {new Date(job.date).toLocaleDateString()}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {job.city}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                            ${(job.payout_cents / 100).toFixed(2)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <CleanNamiButton 
+                            variant="hero" 
+                            size="sm"
+                            onClick={() => claimJob(job.id)}
+                          >
+                            <HandIcon className="h-4 w-4 mr-1" />
+                            Claim
+                          </CleanNamiButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* My Jobs */}
+          <Card className="bg-gradient-card shadow-card">
+            <CardHeader>
+              <CardTitle className="text-primary flex items-center">
+                <Calendar className="h-5 w-5 mr-2" />
+                My Jobs ({myJobs.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {myJobs.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No jobs claimed yet.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>City</TableHead>
+                      <TableHead>Payout</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {myJobs.map((job) => (
+                      <TableRow key={job.id}>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {new Date(job.date).toLocaleDateString()}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {job.city}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                            ${(job.payout_cents / 100).toFixed(2)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(job.status)}
+                        </TableCell>
+                        <TableCell>
+                          {getJobActions(job)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ContractorDashboard;
