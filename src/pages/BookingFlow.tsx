@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, ArrowRight, Calendar, Home, User, Mail, Phone, MapPin, Plus, Clock } from "lucide-react";
 import { calculatePrice, formatCurrency, FLORIDA_CITIES, US_STATES, EARLIEST_CLEAN_DATE, type FloridaCity, type USState } from "@/lib/pricing";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type BookingStep = 'property' | 'service' | 'schedule' | 'contact' | 'payment' | 'addons' | 'frequency' | 'info';
 
@@ -153,7 +154,7 @@ const BookingFlow = () => {
         customerName: bookingData.name,
         customerEmail: bookingData.email,
         customerPhone: bookingData.phone,
-        address: bookingData.address,
+        address: bookingData.address1,
         city: bookingData.city,
         state: bookingData.state,
         zipcode: bookingData.zipcode,
@@ -169,10 +170,10 @@ const BookingFlow = () => {
         frequency: bookingData.frequency,
         basePrice: priceResult.price,
         totalPrice: priceResult.price,
-        parkingInfo: bookingData.parkingInfo,
-        scheduleFlexibility: bookingData.scheduleFlexibility,
-        accessMethod: bookingData.accessMethod,
-        specialInstructions: bookingData.specialInstructions
+        parkingInfo: bookingData.parking,
+        scheduleFlexibility: bookingData.flexibility,
+        accessMethod: bookingData.access,
+        specialInstructions: bookingData.additionalNotes
       };
 
       const { data, error } = await supabase.functions.invoke('create-booking-checkout', {
