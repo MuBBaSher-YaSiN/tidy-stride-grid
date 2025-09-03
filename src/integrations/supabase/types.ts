@@ -44,6 +44,117 @@ export type Database = {
         }
         Relationships: []
       }
+      bookings: {
+        Row: {
+          access_method: string | null
+          base_price_cents: number
+          booking_status: string | null
+          cleaning_date: string
+          cleaning_time: string | null
+          created_at: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          deep_cleaning: boolean | null
+          frequency: string
+          id: string
+          inside_fridge: boolean | null
+          inside_windows: boolean | null
+          laundry: boolean | null
+          parking_info: string | null
+          payment_status: string | null
+          property_address: string
+          property_baths: number
+          property_beds: number
+          property_city: string
+          property_half_baths: number | null
+          property_sqft: number
+          property_state: string
+          property_zipcode: string
+          schedule_flexibility: string | null
+          service_type: string
+          special_instructions: string | null
+          stripe_customer_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_setup_intent_id: string | null
+          subscription_months: number | null
+          total_price_cents: number
+          updated_at: string
+        }
+        Insert: {
+          access_method?: string | null
+          base_price_cents: number
+          booking_status?: string | null
+          cleaning_date: string
+          cleaning_time?: string | null
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          deep_cleaning?: boolean | null
+          frequency: string
+          id?: string
+          inside_fridge?: boolean | null
+          inside_windows?: boolean | null
+          laundry?: boolean | null
+          parking_info?: string | null
+          payment_status?: string | null
+          property_address: string
+          property_baths: number
+          property_beds: number
+          property_city: string
+          property_half_baths?: number | null
+          property_sqft: number
+          property_state: string
+          property_zipcode: string
+          schedule_flexibility?: string | null
+          service_type: string
+          special_instructions?: string | null
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_setup_intent_id?: string | null
+          subscription_months?: number | null
+          total_price_cents: number
+          updated_at?: string
+        }
+        Update: {
+          access_method?: string | null
+          base_price_cents?: number
+          booking_status?: string | null
+          cleaning_date?: string
+          cleaning_time?: string | null
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string
+          deep_cleaning?: boolean | null
+          frequency?: string
+          id?: string
+          inside_fridge?: boolean | null
+          inside_windows?: boolean | null
+          laundry?: boolean | null
+          parking_info?: string | null
+          payment_status?: string | null
+          property_address?: string
+          property_baths?: number
+          property_beds?: number
+          property_city?: string
+          property_half_baths?: number | null
+          property_sqft?: number
+          property_state?: string
+          property_zipcode?: string
+          schedule_flexibility?: string | null
+          service_type?: string
+          special_instructions?: string | null
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_setup_intent_id?: string | null
+          subscription_months?: number | null
+          total_price_cents?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contractors: {
         Row: {
           city: string | null

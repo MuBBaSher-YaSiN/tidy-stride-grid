@@ -145,22 +145,49 @@ const BookingFlow = () => {
         setTimeout(() => {
           navigate("/booking-success");
         }, 2000);
-      } else {
-        // TODO: Implement actual payment processing with Stripe
-        toast({
-          title: "Booking Submitted!",
-          description: "Your cleaning subscription has been created. You'll receive a confirmation email shortly.",
-        });
-        
-        setTimeout(() => {
-          navigate("/booking-success");
-        }, 2000);
+        return;
       }
+
+      // Create Stripe checkout
+      const bookingPayload = {
+        customerName: bookingData.name,
+        customerEmail: bookingData.email,
+        customerPhone: bookingData.phone,
+        address: bookingData.address,
+        city: bookingData.city,
+        state: bookingData.state,
+        zipcode: bookingData.zipcode,
+        beds: bookingData.beds,
+        baths: bookingData.baths,
+        halfBaths: bookingData.halfBaths,
+        sqft: bookingData.sqft,
+        serviceType: bookingData.serviceType,
+        startDate: bookingData.startDate,
+        startTime: bookingData.startTime,
+        months: bookingData.months,
+        addOns: bookingData.addOns,
+        frequency: bookingData.frequency,
+        basePrice: priceResult.price,
+        totalPrice: priceResult.price,
+        parkingInfo: bookingData.parkingInfo,
+        scheduleFlexibility: bookingData.scheduleFlexibility,
+        accessMethod: bookingData.accessMethod,
+        specialInstructions: bookingData.specialInstructions
+      };
+
+      const { data, error } = await supabase.functions.invoke('create-booking-checkout', {
+        body: bookingPayload
+      });
+
+      if (error) throw new Error(error.message || 'Failed to create checkout session');
+      if (data.url) window.location.href = data.url;
+      else throw new Error('No checkout URL received');
+      
     } catch (error) {
-      console.error("Booking submission error:", error);
+      console.error('Booking submission error:', error);
       toast({
         title: "Booking Failed",
-        description: "Something went wrong. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error processing your booking. Please try again.",
         variant: "destructive",
       });
     } finally {
