@@ -17,46 +17,60 @@ serve(async (req) => {
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    console.log('Create contractor function called');
+    console.log("Create contractor function called");
 
     // 1) Get caller (admin) from JWT
     const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-      global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
+      global: { 
+        headers: { 
+          Authorization: req.headers.get("Authorization") || "" 
+        } 
+      },
     });
     
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData.user) {
-      console.error('Unauthorized:', userErr);
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { 
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      console.error("Unauthorized access:", userErr);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }), 
+        { status: 401, headers: corsHeaders }
+      );
     }
 
-    // 2) Check admin via profiles.role
+    console.log("User authenticated:", userData.user.id);
+
+    // 2) Check admin via profiles.role - using maybeSingle to handle no data
     const { data: profile, error: profErr } = await userClient
       .from("profiles")
       .select("role")
       .eq("id", userData.user.id)
-      .single();
+      .maybeSingle();
 
-    if (profErr || !profile || profile.role !== "admin") {
-      console.error('Forbidden - not admin:', profErr, profile);
-      return new Response(JSON.stringify({ error: "Forbidden - Admin access required" }), { 
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    if (profErr) {
+      console.error("Error checking profile:", profErr);
+      return new Response(
+        JSON.stringify({ error: "Profile check failed" }), 
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
+    if (!profile || profile.role !== "admin") {
+      console.error("User is not admin:", profile);
+      return new Response(
+        JSON.stringify({ error: "Forbidden - Admin access required" }), 
+        { status: 403, headers: corsHeaders }
+      );
     }
 
     const { name, email, city, password } = await req.json();
     if (!name || !email || !password) {
-      return new Response(JSON.stringify({ error: "Missing required fields: name, email, password" }), { 
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: name, email, password" }), 
+        { status: 400, headers: corsHeaders }
+      );
     }
 
-    console.log('Creating contractor:', { name, email, city });
+    console.log("Creating contractor:", { name, email, city });
 
     // 3) Admin client with service role
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -68,17 +82,17 @@ serve(async (req) => {
       email_confirm: true,
       user_metadata: { role: "contractor", name, city },
     });
-
+    
     if (createErr || !created.user) {
-      console.error('Failed to create auth user:', createErr);
-      return new Response(JSON.stringify({ error: createErr?.message || "Create user failed" }), { 
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      console.error("Failed to create auth user:", createErr);
+      return new Response(
+        JSON.stringify({ error: createErr?.message || "Create user failed" }), 
+        { status: 400, headers: corsHeaders }
+      );
     }
-
+    
     const contractorUserId = created.user.id;
-    console.log('Created auth user with ID:', contractorUserId);
+    console.log("Auth user created:", contractorUserId);
 
     // 5) Insert contractors row
     const { error: insertErr } = await admin
@@ -86,27 +100,31 @@ serve(async (req) => {
       .insert([{ user_id: contractorUserId, name, email, city }]);
 
     if (insertErr) {
-      console.error('Failed to insert contractor row:', insertErr);
+      console.error("Failed to insert contractor:", insertErr);
       // Rollback - delete the auth user
-      await admin.auth.admin.deleteUser(contractorUserId);
-      console.log('Rolled back auth user creation');
-      return new Response(JSON.stringify({ error: insertErr.message }), { 
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      try {
+        await admin.auth.admin.deleteUser(contractorUserId);
+        console.log("Rolled back auth user creation");
+      } catch (rollbackErr) {
+        console.error("Failed to rollback auth user:", rollbackErr);
+      }
+      return new Response(
+        JSON.stringify({ error: insertErr.message }), 
+        { status: 400, headers: corsHeaders }
+      );
     }
 
-    console.log('Successfully created contractor');
-    return new Response(JSON.stringify({ success: true, user_id: contractorUserId }), { 
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    console.log("Contractor created successfully");
 
-  } catch (error) {
-    console.error('Unexpected error:', error);
-    return new Response(JSON.stringify({ error: String(error) }), { 
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return new Response(
+      JSON.stringify({ success: true, user_id: contractorUserId }), 
+      { status: 200, headers: corsHeaders }
+    );
+  } catch (e) {
+    console.error("Edge function error:", e);
+    return new Response(
+      JSON.stringify({ error: String(e) }), 
+      { status: 500, headers: corsHeaders }
+    );
   }
 });

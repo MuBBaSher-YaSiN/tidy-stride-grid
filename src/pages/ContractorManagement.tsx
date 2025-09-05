@@ -71,7 +71,7 @@ const ContractorManagement = () => {
       const token = sessionData?.session?.access_token;
 
       if (!token) {
-        throw new Error("No authentication token found");
+        throw new Error("Please log in as an admin to create contractors");
       }
 
       const response = await fetch(
@@ -80,15 +80,15 @@ const ContractorManagement = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(formData),
         }
       );
 
-      const result = await response.json();
+      const json = await response.json();
       if (!response.ok) {
-        throw new Error(result.error || "Failed to create contractor");
+        throw new Error(json.error || "Failed to create contractor");
       }
 
       toast({
@@ -174,7 +174,7 @@ const ContractorManagement = () => {
                       type="password"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      placeholder="Enter temporary password for contractor"
+                      placeholder="Set contractor password"
                       required
                     />
                   </div>
