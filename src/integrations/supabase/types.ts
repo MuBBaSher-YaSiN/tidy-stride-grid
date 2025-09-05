@@ -222,6 +222,7 @@ export type Database = {
         Row: {
           admin_approved_at: string | null
           admin_rejected_at: string | null
+          booking_id: string | null
           city: string | null
           claimed_at: string | null
           claimed_by: string | null
@@ -245,6 +246,7 @@ export type Database = {
         Insert: {
           admin_approved_at?: string | null
           admin_rejected_at?: string | null
+          booking_id?: string | null
           city?: string | null
           claimed_at?: string | null
           claimed_by?: string | null
@@ -268,6 +270,7 @@ export type Database = {
         Update: {
           admin_approved_at?: string | null
           admin_rejected_at?: string | null
+          booking_id?: string | null
           city?: string | null
           claimed_at?: string | null
           claimed_by?: string | null
@@ -289,6 +292,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "jobs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "jobs_claimed_by_fkey"
             columns: ["claimed_by"]

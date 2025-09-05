@@ -166,6 +166,7 @@ serve(async (req) => {
 
       // Create a job from the booking for admin dashboard
       await supabaseClient.from("jobs").insert({
+        booking_id: booking.id, // Link job to booking
         property_id: null, // We'll link this later if needed
         date: `${bookingData.startDate}T${bookingData.startTime || '10:00:00'}Z`,
         price_cents: Math.round(bookingData.totalPrice * 100),
@@ -228,6 +229,7 @@ serve(async (req) => {
 
       // Create a job from the booking for admin dashboard
       await supabaseClient.from("jobs").insert({
+        booking_id: booking.id, // Link job to booking
         property_id: null, // We'll link this later if needed
         date: `${bookingData.startDate}T${bookingData.startTime || '10:00:00'}Z`,
         price_cents: Math.round(bookingData.totalPrice * 100),

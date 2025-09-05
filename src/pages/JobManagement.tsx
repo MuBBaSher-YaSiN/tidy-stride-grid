@@ -28,6 +28,7 @@ interface Job {
   claimed_by?: string;
   contractor_id?: string;
   submitted_at?: string;
+  booking_id?: string;
   properties?: {
     address1: string;
     beds: number;
@@ -40,6 +41,16 @@ interface Job {
   claimed_contractor?: {
     name: string;
     id: string;
+  };
+  bookings?: {
+    id: string;
+    customer_name: string;
+    customer_email: string;
+    property_address: string;
+    property_beds: number;
+    property_baths: number;
+    property_city: string;
+    service_type: string;
   };
 }
 
@@ -69,7 +80,17 @@ const JobManagement = () => {
           *,
           properties (address1, beds, baths),
           contractors!jobs_contractor_id_fkey (id, name),
-          claimed_contractor:contractors!jobs_claimed_by_fkey (id, name)
+          claimed_contractor:contractors!jobs_claimed_by_fkey (id, name),
+          bookings (
+            id, 
+            customer_name, 
+            customer_email, 
+            property_address, 
+            property_beds, 
+            property_baths, 
+            property_city,
+            service_type
+          )
         `)
         .order('created_at', { ascending: false });
 
@@ -346,10 +367,18 @@ const JobManagement = () => {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{job.properties?.address1 || job.notes}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {job.properties?.beds}BR / {job.properties?.baths}BA
+                          <div className="font-medium">
+                            {job.bookings?.property_address || job.properties?.address1 || job.notes}
                           </div>
+                          <div className="text-sm text-muted-foreground">
+                            {job.bookings?.property_beds || job.properties?.beds}BR / 
+                            {job.bookings?.property_baths || job.properties?.baths}BA
+                          </div>
+                          {job.bookings?.customer_name && (
+                            <div className="text-sm text-muted-foreground">
+                              Customer: {job.bookings.customer_name}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -416,10 +445,18 @@ const JobManagement = () => {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{job.properties?.address1 || job.notes}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {job.properties?.beds}BR / {job.properties?.baths}BA
+                          <div className="font-medium">
+                            {job.bookings?.property_address || job.properties?.address1 || job.notes}
                           </div>
+                          <div className="text-sm text-muted-foreground">
+                            {job.bookings?.property_beds || job.properties?.beds}BR / 
+                            {job.bookings?.property_baths || job.properties?.baths}BA
+                          </div>
+                          {job.bookings?.customer_name && (
+                            <div className="text-sm text-muted-foreground">
+                              Customer: {job.bookings.customer_name}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -483,10 +520,18 @@ const JobManagement = () => {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{job.properties?.address1}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {job.properties?.beds}BR / {job.properties?.baths}BA
+                          <div className="font-medium">
+                            {job.bookings?.property_address || job.properties?.address1}
                           </div>
+                          <div className="text-sm text-muted-foreground">
+                            {job.bookings?.property_beds || job.properties?.beds}BR / 
+                            {job.bookings?.property_baths || job.properties?.baths}BA
+                          </div>
+                          {job.bookings?.customer_name && (
+                            <div className="text-sm text-muted-foreground">
+                              Customer: {job.bookings.customer_name}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
