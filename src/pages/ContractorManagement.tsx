@@ -34,7 +34,8 @@ const ContractorManagement = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    city: ""
+    city: "",
+    password: ""
   });
   const { toast } = useToast();
 
@@ -66,25 +67,43 @@ const ContractorManagement = () => {
   const handleCreateContractor = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { error } = await supabase
-        .from('contractors')
-        .insert([formData]);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
 
-      if (error) throw error;
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(
+        `https://mdjxcoeaaitjqybyecfv.supabase.co/functions/v1/create-contractor`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to create contractor");
+      }
 
       toast({
         title: "Success",
         description: "Contractor created successfully"
       });
 
-      setFormData({ name: "", email: "", city: "" });
+      setFormData({ name: "", email: "", city: "", password: "" });
       setShowCreateDialog(false);
       fetchContractors();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating contractor:', error);
       toast({
         title: "Error",
-        description: "Failed to create contractor",
+        description: error.message || "Failed to create contractor",
         variant: "destructive"
       });
     }
@@ -145,6 +164,17 @@ const ContractorManagement = () => {
                       id="city"
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="password">Temporary Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      placeholder="Enter temporary password for contractor"
                       required
                     />
                   </div>

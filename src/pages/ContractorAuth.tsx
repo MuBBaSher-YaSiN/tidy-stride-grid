@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { CleanNamiButton } from "@/components/ui/button-variants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,33 +15,35 @@ const ContractorAuth = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // TODO: Implement actual authentication logic
-      toast({
-        title: "Login Attempt",
-        description: "Verifying contractor credentials...",
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
       });
-      
-      // Simulate login delay
-      setTimeout(() => {
-        toast({
-          title: "Authentication Failed", 
-          description: "Please contact admin for account setup.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-      }, 2000);
-    } catch (error) {
+
+      if (error) throw error;
+
       toast({
-        title: "Error",
-        description: "Something went wrong. Please try again.",
+        title: "Signed in successfully",
+        description: "Welcome back to CleanNami!",
+      });
+
+      // Navigate to contractor dashboard
+      navigate("/contractor/dashboard");
+    } catch (error: any) {
+      console.error('Authentication error:', error);
+      toast({
+        title: "Authentication Failed",
+        description: error.message || "Invalid email or password. Please contact admin if you need help.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };

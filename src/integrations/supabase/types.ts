@@ -165,6 +165,7 @@ export type Database = {
           password_hash: string | null
           stripe_account_id: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           city?: string | null
@@ -175,6 +176,7 @@ export type Database = {
           password_hash?: string | null
           stripe_account_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           city?: string | null
@@ -185,6 +187,7 @@ export type Database = {
           password_hash?: string | null
           stripe_account_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -457,6 +460,24 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          role?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: string | null
+        }
+        Relationships: []
+      }
       properties: {
         Row: {
           address1: string
@@ -582,6 +603,10 @@ export type Database = {
       calculate_price: {
         Args: { baths: number; beds: number; sqft: number }
         Returns: number
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
     }
     Enums: {
