@@ -50,8 +50,11 @@ const AdminDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch jobs data
-      const { data: jobs } = await supabase.from('jobs').select('*');
+      // Fetch jobs data with booking details
+      const { data: jobs } = await supabase
+        .from('jobs')
+        .select('*, bookings:booking_id(customer_name, property_address, property_city)')
+        .order('date', { ascending: false });
       const { data: contractors } = await supabase.from('contractors').select('*');
       const { data: payments } = await supabase.from('payment_events').select('*');
 

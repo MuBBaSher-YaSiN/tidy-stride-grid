@@ -85,7 +85,7 @@ const ContractorDashboard = () => {
     try {
       if (!user?.id) return;
 
-      // Fetch available jobs (RLS will auto-filter by contractor's city)
+      // Fetch available jobs (RLS will auto-filter by contractor's city and status='New')
       const { data, error } = await supabase
         .from('jobs')
         .select(`
@@ -99,7 +99,6 @@ const ContractorDashboard = () => {
           )
         `)
         .eq('status', 'New')
-        .is('claimed_by', null)
         .order('date', { ascending: true });
 
       if (error) throw error;
@@ -126,7 +125,7 @@ const ContractorDashboard = () => {
         return;
       }
 
-      // Fetch jobs claimed or assigned to this contractor (RLS will auto-filter)
+      // Fetch my jobs (claimed or assigned to this contractor, RLS will auto-filter)
       const { data, error } = await supabase
         .from('jobs')
         .select(`
@@ -139,6 +138,7 @@ const ContractorDashboard = () => {
             service_type
           )
         `)
+        .or(`claimed_by.eq.${contractor.id},contractor_id.eq.${contractor.id}`)
         .order('date', { ascending: true });
 
       if (error) throw error;

@@ -164,19 +164,37 @@ serve(async (req) => {
         .update({ stripe_setup_intent_id: session.setup_intent })
         .eq("id", booking.id);
 
-      // Create a job from the booking for admin dashboard
-      await supabaseClient.from("jobs").insert({
-        booking_id: booking.id, // Link job to booking
-        property_id: null, // We'll link this later if needed
-        date: `${bookingData.startDate}T${bookingData.startTime || '10:00:00'}Z`,
-        price_cents: Math.round(bookingData.totalPrice * 100),
-        payout_cents: Math.round(bookingData.totalPrice * 100 * 0.7), // 70% payout
-        contractor_id: null, // Will be assigned later
-        is_first_clean: true,
-        city: bookingData.city,
-        status: 'New',
-        notes: `Booking #${booking.id} - ${bookingData.customerName} - ${bookingData.address}`
-      });
+      // Create a job from the booking for admin dashboard (with fallback to RPC)
+      const { data: jobRow, error: jobErr } = await supabaseClient
+        .from("jobs")
+        .insert({
+          booking_id: booking.id,
+          date: `${bookingData.startDate}T${(bookingData.startTime || '10:00')}:00Z`,
+          price_cents: Math.round(bookingData.totalPrice * 100),
+          payout_cents: Math.round(bookingData.totalPrice * 100 * 0.7),
+          contractor_id: null,
+          is_first_clean: true,
+          city: bookingData.city,
+          status: 'New',
+          notes: `Booking #${booking.id} - ${bookingData.customerName} - ${bookingData.address}`
+        })
+        .select()
+        .single();
+
+      if (jobErr) {
+        console.log("[CREATE-BOOKING-CHECKOUT] ERROR: job insert failed", jobErr);
+        // fallback to RPC (uses the DB function above)
+        const { data: rpcData, error: rpcErr } = await supabaseClient
+          .rpc("create_job_from_booking", { p_booking_id: booking.id });
+        if (rpcErr) {
+          console.log("[CREATE-BOOKING-CHECKOUT] ERROR: RPC create_job_from_booking failed", rpcErr);
+          // don't block Stripe flow, but we need a job; surface a warning in logs
+        } else {
+          console.log("[CREATE-BOOKING-CHECKOUT] Fallback RPC created job", rpcData);
+        }
+      } else {
+        console.log("[CREATE-BOOKING-CHECKOUT] Job created", jobRow?.id);
+      }
 
       logStep("Setup session created and job created", { sessionId: session.id, url: session.url });
       
@@ -227,19 +245,37 @@ serve(async (req) => {
         })
         .eq("id", booking.id);
 
-      // Create a job from the booking for admin dashboard
-      await supabaseClient.from("jobs").insert({
-        booking_id: booking.id, // Link job to booking
-        property_id: null, // We'll link this later if needed
-        date: `${bookingData.startDate}T${bookingData.startTime || '10:00:00'}Z`,
-        price_cents: Math.round(bookingData.totalPrice * 100),
-        payout_cents: Math.round(bookingData.totalPrice * 100 * 0.7), // 70% payout
-        contractor_id: null, // Will be assigned later
-        is_first_clean: true,
-        city: bookingData.city,
-        status: 'New',
-        notes: `Booking #${booking.id} - ${bookingData.customerName} - ${bookingData.address}`
-      });
+      // Create a job from the booking for admin dashboard (with fallback to RPC)
+      const { data: jobRow, error: jobErr } = await supabaseClient
+        .from("jobs")
+        .insert({
+          booking_id: booking.id,
+          date: `${bookingData.startDate}T${(bookingData.startTime || '10:00')}:00Z`,
+          price_cents: Math.round(bookingData.totalPrice * 100),
+          payout_cents: Math.round(bookingData.totalPrice * 100 * 0.7),
+          contractor_id: null,
+          is_first_clean: true,
+          city: bookingData.city,
+          status: 'New',
+          notes: `Booking #${booking.id} - ${bookingData.customerName} - ${bookingData.address}`
+        })
+        .select()
+        .single();
+
+      if (jobErr) {
+        console.log("[CREATE-BOOKING-CHECKOUT] ERROR: job insert failed", jobErr);
+        // fallback to RPC (uses the DB function above)
+        const { data: rpcData, error: rpcErr } = await supabaseClient
+          .rpc("create_job_from_booking", { p_booking_id: booking.id });
+        if (rpcErr) {
+          console.log("[CREATE-BOOKING-CHECKOUT] ERROR: RPC create_job_from_booking failed", rpcErr);
+          // don't block Stripe flow, but we need a job; surface a warning in logs
+        } else {
+          console.log("[CREATE-BOOKING-CHECKOUT] Fallback RPC created job", rpcData);
+        }
+      } else {
+        console.log("[CREATE-BOOKING-CHECKOUT] Job created", jobRow?.id);
+      }
 
       logStep("Payment intent and session created", { 
         paymentIntentId: paymentIntent.id,
