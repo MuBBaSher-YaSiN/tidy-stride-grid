@@ -78,10 +78,7 @@ const JobManagement = () => {
         .from('jobs')
         .select(`
           *,
-          properties (address1, beds, baths),
-          contractors!jobs_contractor_id_fkey (id, name),
-          claimed_contractor:contractors!jobs_claimed_by_fkey (id, name),
-          bookings (
+          bookings:booking_id (
             id, 
             customer_name, 
             customer_email, 
@@ -90,9 +87,11 @@ const JobManagement = () => {
             property_baths, 
             property_city,
             service_type
-          )
+          ),
+          contractors!jobs_contractor_id_fkey (id, name),
+          claimed_contractor:contractors!jobs_claimed_by_fkey (id, name)
         `)
-        .order('created_at', { ascending: false });
+        .order('date', { ascending: false });
 
       if (error) throw error;
       setJobs(data || []);

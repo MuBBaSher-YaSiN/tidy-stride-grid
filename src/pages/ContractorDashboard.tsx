@@ -32,6 +32,13 @@ interface Job {
   claimed_at?: string;
   completed_at?: string;
   submitted_at?: string;
+  bookings?: {
+    customer_name: string;
+    property_address: string;
+    property_beds: number;
+    property_baths: number;
+    service_type: string;
+  } | null;
 }
 
 interface Stats {
@@ -78,23 +85,22 @@ const ContractorDashboard = () => {
     try {
       if (!user?.id) return;
 
-      // Get contractor info to filter by city
-      const { data: contractor } = await supabase
-        .from('contractors')
-        .select('city')
-        .eq('id', user.id)
-        .single();
-
-      if (!contractor) return;
-
-      // Fetch available jobs in the contractor's city
+      // Fetch available jobs (RLS will auto-filter by contractor's city)
       const { data, error } = await supabase
         .from('jobs')
-        .select('*')
+        .select(`
+          *,
+          bookings:booking_id (
+            customer_name, 
+            property_address, 
+            property_beds, 
+            property_baths, 
+            service_type
+          )
+        `)
         .eq('status', 'New')
-        .eq('city', contractor.city)
-        .is('contractor_id', null)
-        .is('claimed_by', null);
+        .is('claimed_by', null)
+        .order('date', { ascending: true });
 
       if (error) throw error;
       setJobs(data || []);
@@ -107,11 +113,32 @@ const ContractorDashboard = () => {
     try {
       if (!user?.id) return;
 
-      // Fetch jobs claimed or assigned to this contractor
+      // Get contractor ID first
+      const { data: contractor } = await supabase
+        .from('contractors')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!contractor) {
+        console.log('No contractor found for user');
+        setLoading(false);
+        return;
+      }
+
+      // Fetch jobs claimed or assigned to this contractor (RLS will auto-filter)
       const { data, error } = await supabase
         .from('jobs')
-        .select('*')
-        .or(`contractor_id.eq.${user.id},claimed_by.eq.${user.id}`)
+        .select(`
+          *,
+          bookings:booking_id (
+            customer_name, 
+            property_address, 
+            property_beds, 
+            property_baths, 
+            service_type
+          )
+        `)
         .order('date', { ascending: true });
 
       if (error) throw error;
@@ -140,10 +167,26 @@ const ContractorDashboard = () => {
 
   const claimJob = async (jobId: string) => {
     try {
+      // Get contractor ID first
+      const { data: contractor } = await supabase
+        .from('contractors')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!contractor) {
+        toast({
+          title: "Error",
+          description: "Contractor profile not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('jobs')
         .update({ 
-          claimed_by: user.id, 
+          claimed_by: contractor.id, 
           claimed_at: new Date().toISOString(),
           status: 'Claimed'
         })
@@ -189,12 +232,18 @@ const ContractorDashboard = () => {
       // If job is submitted, create payment request
       if (newStatus === 'Submitted') {
         const job = myJobs.find(j => j.id === jobId);
-        if (job) {
+        const { data: contractor } = await supabase
+          .from('contractors')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (job && contractor) {
           const { error: paymentError } = await supabase
             .from('payment_requests')
             .insert({
               job_id: jobId,
-              contractor_id: user.id,
+              contractor_id: contractor.id,
               amount_cents: job.payout_cents,
               status: 'pending'
             });
@@ -371,46 +420,62 @@ const ContractorDashboard = () => {
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>City</TableHead>
-                      <TableHead>Payout</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {jobs.map((job) => (
-                      <TableRow key={job.id}>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                            {new Date(job.date).toLocaleDateString()}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                            {job.city}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                            ${(job.payout_cents / 100).toFixed(2)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <CleanNamiButton 
-                            variant="hero" 
-                            size="sm"
-                            onClick={() => claimJob(job.id)}
-                          >
-                            <HandIcon className="h-4 w-4 mr-1" />
-                            Claim
-                          </CleanNamiButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                     <TableRow>
+                       <TableHead>Date</TableHead>
+                       <TableHead>Property</TableHead>
+                       <TableHead>City</TableHead>
+                       <TableHead>Payout</TableHead>
+                       <TableHead>Actions</TableHead>
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {jobs.map((job) => (
+                       <TableRow key={job.id}>
+                         <TableCell>
+                           <div className="flex items-center">
+                             <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                             {new Date(job.date).toLocaleDateString()}
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <div>
+                             <div className="font-medium">
+                               {job.bookings?.property_address || job.notes}
+                             </div>
+                             <div className="text-sm text-muted-foreground">
+                               {job.bookings?.property_beds}BR / {job.bookings?.property_baths}BA
+                             </div>
+                             {job.bookings?.customer_name && (
+                               <div className="text-sm text-muted-foreground">
+                                 Customer: {job.bookings.customer_name}
+                               </div>
+                             )}
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <div className="flex items-center">
+                             <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                             {job.city}
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <div className="flex items-center">
+                             <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                             ${(job.payout_cents / 100).toFixed(2)}
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <CleanNamiButton 
+                             variant="hero" 
+                             size="sm"
+                             onClick={() => claimJob(job.id)}
+                           >
+                             <HandIcon className="h-4 w-4 mr-1" />
+                             Claim
+                           </CleanNamiButton>
+                         </TableCell>
+                       </TableRow>
+                     ))}
                   </TableBody>
                 </Table>
               )}
@@ -432,44 +497,60 @@ const ContractorDashboard = () => {
                 </div>
               ) : (
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>City</TableHead>
-                      <TableHead>Payout</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {myJobs.map((job) => (
-                      <TableRow key={job.id}>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                            {new Date(job.date).toLocaleDateString()}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                            {job.city}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                            ${(job.payout_cents / 100).toFixed(2)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {getStatusBadge(job.status)}
-                        </TableCell>
-                        <TableCell>
-                          {getJobActions(job)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                   <TableHeader>
+                     <TableRow>
+                       <TableHead>Date</TableHead>
+                       <TableHead>Property</TableHead>
+                       <TableHead>City</TableHead>
+                       <TableHead>Payout</TableHead>
+                       <TableHead>Status</TableHead>
+                       <TableHead>Actions</TableHead>
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {myJobs.map((job) => (
+                       <TableRow key={job.id}>
+                         <TableCell>
+                           <div className="flex items-center">
+                             <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                             {new Date(job.date).toLocaleDateString()}
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <div>
+                             <div className="font-medium">
+                               {job.bookings?.property_address || job.notes}
+                             </div>
+                             <div className="text-sm text-muted-foreground">
+                               {job.bookings?.property_beds}BR / {job.bookings?.property_baths}BA
+                             </div>
+                             {job.bookings?.customer_name && (
+                               <div className="text-sm text-muted-foreground">
+                                 Customer: {job.bookings.customer_name}
+                               </div>
+                             )}
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <div className="flex items-center">
+                             <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                             {job.city}
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <div className="flex items-center">
+                             <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                             ${(job.payout_cents / 100).toFixed(2)}
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           {getStatusBadge(job.status)}
+                         </TableCell>
+                         <TableCell>
+                           {getJobActions(job)}
+                         </TableCell>
+                       </TableRow>
+                     ))}
                   </TableBody>
                 </Table>
               )}
