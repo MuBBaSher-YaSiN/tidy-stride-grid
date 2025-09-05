@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { CleanNamiButton } from "@/components/ui/button-variants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,10 +9,7 @@ import { ArrowLeft, Shield, Mail, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminAuth = () => {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -19,29 +17,33 @@ const AdminAuth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
-      // Check for default admin credentials
-      if (formData.email === "admin@cleannami.com" && formData.password === "admin123") {
-        toast({
-          title: "Admin Login Successful",
-          description: "Welcome to the CleanNami admin panel!",
-        });
-        // TODO: Set proper authentication state
-        setTimeout(() => {
-          navigate("/admin/dashboard");
-        }, 1500);
-      } else {
-        toast({
-          title: "Authentication Failed",
-          description: "Invalid credentials. Please try again.",
-          variant: "destructive",
-        });
+      // 1) Real Supabase sign-in
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+      if (error) throw error;
+
+      // 2) Verify admin role from profiles
+      const userId = data.user?.id;
+      const { data: profile, error: pErr } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
+      if (pErr) throw pErr;
+      if (profile?.role !== "admin") {
+        await supabase.auth.signOut();
+        throw new Error("You are not authorized as admin.");
       }
-    } catch (error) {
+
+      toast({ title: "Admin Login Successful", description: "Welcome to CleanNami admin." });
+      navigate("/admin/dashboard");
+    } catch (err: any) {
       toast({
-        title: "Authentication Error",
-        description: "Something went wrong. Please try again.",
+        title: "Authentication Failed",
+        description: err.message || "Invalid credentials.",
         variant: "destructive",
       });
     } finally {
@@ -49,14 +51,12 @@ const AdminAuth = () => {
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string) =>
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-6">
       <div className="w-full max-w-md">
-        {/* Back to Home */}
         <Link to="/" className="flex items-center text-primary hover:text-primary/80 mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Home
@@ -64,23 +64,16 @@ const AdminAuth = () => {
 
         <Card className="shadow-hero bg-gradient-card">
           <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <Shield className="h-12 w-12 text-primary" />
-            </div>
-            <CardTitle className="text-2xl text-primary">
-              Admin Portal
-            </CardTitle>
-            <p className="text-muted-foreground">
-              Secure access to CleanNami administration
-            </p>
+            <Shield className="h-12 w-12 text-primary mx-auto mb-4" />
+            <CardTitle className="text-2xl text-primary">Admin Portal</CardTitle>
+            <p className="text-muted-foreground">Secure access to CleanNami administration</p>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Admin Email
+                  <Mail className="h-4 w-4 mr-2" /> Admin Email
                 </Label>
                 <Input
                   id="email"
@@ -94,8 +87,7 @@ const AdminAuth = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="password" className="flex items-center">
-                  <Lock className="h-4 w-4 mr-2" />
-                  Password
+                  <Lock className="h-4 w-4 mr-2" /> Password
                 </Label>
                 <Input
                   id="password"
@@ -107,38 +99,10 @@ const AdminAuth = () => {
                 />
               </div>
 
-              <CleanNamiButton 
-                type="submit" 
-                variant="hero" 
-                className="w-full" 
-                disabled={isLoading}
-              >
+              <CleanNamiButton type="submit" variant="hero" className="w-full" disabled={isLoading}>
                 {isLoading ? "Authenticating..." : "Access Admin Panel"}
               </CleanNamiButton>
             </form>
-
-            {/* Default Credentials Info */}
-            <div className="mt-6 p-4 bg-secondary/20 rounded-lg border-l-4 border-primary">
-              <h4 className="font-semibold text-primary mb-2">Default Credentials:</h4>
-              <p className="text-sm text-muted-foreground">
-                <strong>Email:</strong> admin@cleannami.com<br />
-                <strong>Password:</strong> admin123
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Please change these credentials after first login.
-              </p>
-            </div>
-
-            <div className="mt-6 p-4 bg-gradient-hero rounded-lg">
-              <h4 className="font-semibold text-primary mb-2">Admin Capabilities:</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Create and manage contractor accounts</li>
-                <li>• Approve and mark jobs as paid</li>
-                <li>• View all payment events and transfers</li>
-                <li>• Monitor system health and metrics</li>
-                <li>• Handle customer service issues</li>
-              </ul>
-            </div>
           </CardContent>
         </Card>
       </div>
