@@ -614,6 +614,10 @@ export type Database = {
         Args: { baths: number; beds: number; sqft: number }
         Returns: number
       }
+      create_job_from_booking: {
+        Args: { p_booking_id: string }
+        Returns: string
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
