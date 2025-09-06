@@ -57,22 +57,22 @@ serve(async (req) => {
     logStep("Supabase client initialized");
 
     // Parse request body first
-    const bookingData = await req.json();
+    const requestData = await req.json();
     logStep("Booking data received", { 
-      customerEmail: bookingData.customerEmail,
-      serviceType: bookingData.serviceType,
-      totalPrice: bookingData.totalPrice,
-      cleaningType: bookingData.cleaningType
+      customerEmail: requestData.customerEmail,
+      serviceType: requestData.serviceType,
+      totalPrice: requestData.totalPrice,
+      cleaningType: requestData.cleaningType
     });
 
     // Check rate limiting after parsing booking data
     const clientIP = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-    logStep("Rate limiting check", { email: bookingData.customerEmail, ip: clientIP });
+    logStep("Rate limiting check", { email: requestData.customerEmail, ip: clientIP });
 
     // Check if this email or IP is rate limited
     const { data: rateLimitCheck, error: rateLimitError } = await supabaseClient
       .rpc('check_booking_rate_limit', {
-        p_email: bookingData.customerEmail,
+        p_email: requestData.customerEmail,
         p_ip: clientIP
       });
 
@@ -80,16 +80,16 @@ serve(async (req) => {
       logStep("ERROR: Rate limit check failed", { error: rateLimitError });
       // Continue with booking - don't fail on rate limit check errors
     } else if (!rateLimitCheck) {
-      logStep("ERROR: Rate limit exceeded", { email: bookingData.customerEmail, ip: clientIP });
+      logStep("ERROR: Rate limit exceeded", { email: requestData.customerEmail, ip: clientIP });
       throw new Error("Too many booking attempts. Please try again later.");
     }
 
     logStep("Rate limit check passed");
     logStep("Booking data received", { 
-      customerEmail: bookingData.customerEmail,
-      serviceType: bookingData.serviceType,
-      totalPrice: bookingData.totalPrice,
-      cleaningType: bookingData.cleaningType
+      customerEmail: requestData.customerEmail,
+      serviceType: requestData.serviceType,
+      totalPrice: requestData.totalPrice,
+      cleaningType: requestData.cleaningType
     });
 
     // Validate required fields with enhanced security checks
@@ -100,38 +100,38 @@ serve(async (req) => {
     ];
     
     for (const field of requiredFields) {
-      if (!bookingData[field]) {
+      if (!requestData[field]) {
         logStep("ERROR: Missing required field", { field });
         throw new Error(`Missing required field: ${field}`);
       }
     }
 
     // Enhanced input validation
-    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(bookingData.customerEmail)) {
-      logStep("ERROR: Invalid email format", { email: bookingData.customerEmail });
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(requestData.customerEmail)) {
+      logStep("ERROR: Invalid email format", { email: requestData.customerEmail });
       throw new Error("Invalid email address format");
     }
 
-    if (bookingData.customerName.trim().length < 2 || bookingData.customerName.trim().length > 100) {
-      logStep("ERROR: Invalid customer name", { name: bookingData.customerName });
+    if (requestData.customerName.trim().length < 2 || requestData.customerName.trim().length > 100) {
+      logStep("ERROR: Invalid customer name", { name: requestData.customerName });
       throw new Error("Customer name must be between 2 and 100 characters");
     }
 
-    if (bookingData.totalPrice < 50 || bookingData.totalPrice > 5000) {
-      logStep("ERROR: Invalid price range", { price: bookingData.totalPrice });
+    if (requestData.totalPrice < 50 || requestData.totalPrice > 5000) {
+      logStep("ERROR: Invalid price range", { price: requestData.totalPrice });
       throw new Error("Price must be between $50 and $5000");
     }
 
-    if (bookingData.beds < 1 || bookingData.beds > 20 || bookingData.baths < 1 || bookingData.baths > 20) {
-      logStep("ERROR: Invalid property specifications", { beds: bookingData.beds, baths: bookingData.baths });
+    if (requestData.beds < 1 || requestData.beds > 20 || requestData.baths < 1 || requestData.baths > 20) {
+      logStep("ERROR: Invalid property specifications", { beds: requestData.beds, baths: requestData.baths });
       throw new Error("Invalid property specifications");
     }
 
-    const bookingDate = new Date(bookingData.startDate);
+    const bookingDate = new Date(requestData.startDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (bookingDate < today) {
-      logStep("ERROR: Invalid booking date", { date: bookingData.startDate });
+      logStep("ERROR: Invalid booking date", { date: requestData.startDate });
       throw new Error("Booking date cannot be in the past");
     }
 
@@ -143,9 +143,9 @@ serve(async (req) => {
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(bookingData.customerEmail)) {
-      logStep("ERROR: Invalid email format", { email: bookingData.customerEmail });
-      throw new Error(`Invalid email address: ${bookingData.customerEmail}`);
+    if (!emailRegex.test(requestData.customerEmail)) {
+      logStep("ERROR: Invalid email format", { email: requestData.customerEmail });
+      throw new Error(`Invalid email address: ${requestData.customerEmail}`);
     }
 
     // Additional security: Check for suspicious patterns
@@ -159,15 +159,15 @@ serve(async (req) => {
       /@guerrilla/i
     ];
 
-    const isSuspiciousEmail = suspiciousPatterns.some(pattern => pattern.test(bookingData.customerEmail));
+    const isSuspiciousEmail = suspiciousPatterns.some(pattern => pattern.test(requestData.customerEmail));
     if (isSuspiciousEmail) {
-      logStep("WARNING: Suspicious email pattern detected", { email: bookingData.customerEmail });
+      logStep("WARNING: Suspicious email pattern detected", { email: requestData.customerEmail });
       // Log but don't block - might be legitimate
     }
 
     // Check if customer already exists
     const customers = await stripe.customers.list({ 
-      email: bookingData.customerEmail, 
+      email: requestData.customerEmail, 
       limit: 1 
     });
     
@@ -178,62 +178,62 @@ serve(async (req) => {
     } else {
       // Create new customer
       const customer = await stripe.customers.create({
-        email: bookingData.customerEmail,
-        name: bookingData.customerName,
-        phone: bookingData.customerPhone,
+        email: requestData.customerEmail,
+        name: requestData.customerName,
+        phone: requestData.customerPhone,
       });
       customerId = customer.id;
       logStep("New customer created", { customerId });
     }
 
     // Determine payment mode based on cleaningType
-    const isSubscription = bookingData.cleaningType === "subscription";
+    const isSubscription = requestData.cleaningType === "subscription";
     const checkoutMode = isSubscription ? "setup" : "payment";
     
     logStep("Payment mode determined", { 
-      cleaningType: bookingData.cleaningType, 
+      cleaningType: requestData.cleaningType, 
       isSubscription, 
       checkoutMode 
     });
 
     // Parse time and create proper job date
-    const time24 = parseTime24Hour(bookingData.startTime);
-    const jobDateIso = `${bookingData.startDate}T${time24}:00Z`;
-    logStep("Job date parsed", { originalTime: bookingData.startTime, time24, jobDateIso });
+    const time24 = parseTime24Hour(requestData.startTime);
+    const jobDateIso = `${requestData.startDate}T${time24}:00Z`;
+    logStep("Job date parsed", { originalTime: requestData.startTime, time24, jobDateIso });
 
     // Insert booking into database with enhanced error handling
     let booking;
     try {
-      const { data: bookingData, error: bookingError } = await supabaseClient
+      const { data: bookingRecord, error: bookingError } = await supabaseClient
         .from("bookings")
         .insert({
-          customer_name: bookingData.customerName,
-          customer_email: bookingData.customerEmail,
-          customer_phone: bookingData.customerPhone,
-          property_address: bookingData.address,
-          property_city: bookingData.city,
-          property_state: bookingData.state,
-          property_zipcode: bookingData.zipcode,
-          property_beds: bookingData.beds,
-          property_baths: bookingData.baths,
-          property_half_baths: bookingData.halfBaths || 0,
-          property_sqft: bookingData.sqft,
-          service_type: bookingData.serviceType,
-          cleaning_date: bookingData.startDate,
-          cleaning_time: bookingData.startTime,
-          subscription_months: bookingData.months,
-          deep_cleaning: bookingData.addOns?.deepCleaning || false,
-          laundry: bookingData.addOns?.laundry || false,
-          inside_fridge: bookingData.addOns?.insideFridge || false,
-          inside_windows: bookingData.addOns?.insideWindows || false,
-          cleaning_type: bookingData.cleaningType,
-          frequency: bookingData.cleaningType === 'one-time' ? 'one-time' : bookingData.frequency,
-          base_price_cents: Math.round(bookingData.basePrice * 100),
-          total_price_cents: Math.round(bookingData.totalPrice * 100),
-          parking_info: bookingData.parkingInfo,
-          schedule_flexibility: bookingData.scheduleFlexibility,
-          access_method: bookingData.accessMethod,
-          special_instructions: bookingData.specialInstructions,
+          customer_name: requestData.customerName,
+          customer_email: requestData.customerEmail,
+          customer_phone: requestData.customerPhone,
+          property_address: requestData.address,
+          property_city: requestData.city,
+          property_state: requestData.state,
+          property_zipcode: requestData.zipcode,
+          property_beds: requestData.beds,
+          property_baths: requestData.baths,
+          property_half_baths: requestData.halfBaths || 0,
+          property_sqft: requestData.sqft,
+          service_type: requestData.serviceType,
+          cleaning_date: requestData.startDate,
+          cleaning_time: requestData.startTime,
+          subscription_months: requestData.months,
+          deep_cleaning: requestData.addOns?.deepCleaning || false,
+          laundry: requestData.addOns?.laundry || false,
+          inside_fridge: requestData.addOns?.insideFridge || false,
+          inside_windows: requestData.addOns?.insideWindows || false,
+          cleaning_type: requestData.cleaningType,
+          frequency: requestData.cleaningType === 'one-time' ? 'one-time' : requestData.frequency,
+          base_price_cents: Math.round(requestData.basePrice * 100),
+          total_price_cents: Math.round(requestData.totalPrice * 100),
+          parking_info: requestData.parkingInfo,
+          schedule_flexibility: requestData.scheduleFlexibility,
+          access_method: requestData.accessMethod,
+          special_instructions: requestData.specialInstructions,
           stripe_customer_id: customerId,
           payment_mode: isSubscription ? "subscription" : "one-time",
           payment_status: isSubscription ? "pending" : "processing",
@@ -251,7 +251,7 @@ serve(async (req) => {
         throw new Error(`Failed to create booking: ${bookingError.message}`);
       }
 
-      booking = bookingData;
+      booking = bookingRecord;
       logStep("Booking created successfully", { bookingId: booking.id });
 
     } catch (error) {
@@ -269,11 +269,11 @@ serve(async (req) => {
         .insert({
           booking_id: booking.id,
           date: jobDateIso,
-          price_cents: Math.round(bookingData.totalPrice * 100),
-          payout_cents: Math.round(bookingData.totalPrice * 100 * 0.7),
-          city: bookingData.city,
+          price_cents: Math.round(requestData.totalPrice * 100),
+          payout_cents: Math.round(requestData.totalPrice * 100 * 0.7),
+          city: requestData.city,
           status: 'New',
-          notes: `Booking #${booking.id} - ${bookingData.customerName} - ${bookingData.address}`
+          notes: `Booking #${booking.id} - ${requestData.customerName} - ${requestData.address}`
         })
         .select()
         .single();
@@ -311,8 +311,8 @@ serve(async (req) => {
         cancel_url: `${origin}/booking-cancelled?booking_id=${booking.id}`,
         metadata: {
           booking_id: booking.id,
-          service_type: bookingData.serviceType,
-          frequency: bookingData.frequency
+          service_type: requestData.serviceType,
+          frequency: requestData.frequency
         }
       });
 
@@ -330,14 +330,14 @@ serve(async (req) => {
         .from("jobs")
         .insert({
           booking_id: booking.id,
-          date: `${bookingData.startDate}T${(bookingData.startTime || '10:00')}:00Z`,
-          price_cents: Math.round(bookingData.totalPrice * 100),
-          payout_cents: Math.round(bookingData.totalPrice * 100 * 0.7),
+          date: `${requestData.startDate}T${(requestData.startTime || '10:00')}:00Z`,
+          price_cents: Math.round(requestData.totalPrice * 100),
+          payout_cents: Math.round(requestData.totalPrice * 100 * 0.7),
           contractor_id: null,
           is_first_clean: true,
-          city: bookingData.city,
+          city: requestData.city,
           status: 'New',
-          notes: `Booking #${booking.id} - ${bookingData.customerName} - ${bookingData.address}`
+          notes: `Booking #${booking.id} - ${requestData.customerName} - ${requestData.address}`
         })
         .select()
         .single();
@@ -379,10 +379,10 @@ serve(async (req) => {
           price_data: {
             currency: "usd",
             product_data: {
-              name: `${bookingData.serviceType} - One Time Cleaning`,
-              description: `${bookingData.beds}BR/${bookingData.baths}BA - ${bookingData.address}, ${bookingData.city}`
+              name: `${requestData.serviceType} - One Time Cleaning`,
+              description: `${requestData.beds}BR/${requestData.baths}BA - ${requestData.address}, ${requestData.city}`
             },
-            unit_amount: Math.round(bookingData.totalPrice * 100)
+            unit_amount: Math.round(requestData.totalPrice * 100)
           },
           quantity: 1
         }],
@@ -390,7 +390,7 @@ serve(async (req) => {
         cancel_url: `${origin}/booking-cancelled?booking_id=${booking.id}`,
         metadata: {
           booking_id: booking.id,
-          service_type: bookingData.serviceType,
+          service_type: requestData.serviceType,
           payment_type: 'one-time'
         }
       });
@@ -409,14 +409,14 @@ serve(async (req) => {
         .from("jobs")
         .insert({
           booking_id: booking.id,
-          date: `${bookingData.startDate}T${(bookingData.startTime || '10:00')}:00Z`,
-          price_cents: Math.round(bookingData.totalPrice * 100),
-          payout_cents: Math.round(bookingData.totalPrice * 100 * 0.7),
+          date: `${requestData.startDate}T${(requestData.startTime || '10:00')}:00Z`,
+          price_cents: Math.round(requestData.totalPrice * 100),
+          payout_cents: Math.round(requestData.totalPrice * 100 * 0.7),
           contractor_id: null,
           is_first_clean: true,
-          city: bookingData.city,
+          city: requestData.city,
           status: 'New',
-          notes: `Booking #${booking.id} - ${bookingData.customerName} - ${bookingData.address}`
+          notes: `Booking #${booking.id} - ${requestData.customerName} - ${requestData.address}`
         })
         .select()
         .single();
