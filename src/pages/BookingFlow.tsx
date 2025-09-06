@@ -29,6 +29,7 @@ interface BookingData {
   
   // Service details  
   serviceType: 'Residential' | 'VR' | '';
+  cleaningType: 'one-time' | 'subscription' | '';
   months: number;
   icalUrl?: string;
   
@@ -75,6 +76,7 @@ const BookingFlow = () => {
     halfBaths: 0,
     sqft: 800,
     serviceType: '',
+    cleaningType: '',
     months: 3,
     startDate: '',
     startTime: '',
@@ -438,22 +440,56 @@ const BookingFlow = () => {
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor="months">Subscription Length</Label>
-          <Select value={bookingData.months.toString()} onValueChange={(value) => updateBookingData({ months: parseInt(value) })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">1 Month</SelectItem>
-              <SelectItem value="2">2 Months</SelectItem>
-              <SelectItem value="3">3 Months</SelectItem>
-              <SelectItem value="4">4 Months</SelectItem>
-              <SelectItem value="5">5 Months</SelectItem>
-              <SelectItem value="6">6 Months</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="space-y-4">
+          <Label>Cleaning Option</Label>
+          <RadioGroup 
+            value={bookingData.cleaningType} 
+            onValueChange={(value: 'one-time' | 'subscription') => {
+              updateBookingData({ 
+                cleaningType: value,
+                frequency: value === 'one-time' ? 'one-time' : 'weekly'
+              });
+            }}
+          >
+            <div className="flex items-center space-x-2 p-4 border rounded-lg">
+              <RadioGroupItem value="one-time" id="one-time-cleaning" />
+              <div className="flex-1">
+                <Label htmlFor="one-time-cleaning" className="cursor-pointer">
+                  <div className="font-medium">One-Time Cleaning</div>
+                  <div className="text-sm text-muted-foreground">Single cleaning service with immediate payment</div>
+                </Label>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 p-4 border rounded-lg">
+              <RadioGroupItem value="subscription" id="subscription-cleaning" />
+              <div className="flex-1">
+                <Label htmlFor="subscription-cleaning" className="cursor-pointer">
+                  <div className="font-medium">Subscription Cleaning</div>
+                  <div className="text-sm text-muted-foreground">Recurring service with payment per completed job</div>
+                </Label>
+              </div>
+            </div>
+          </RadioGroup>
         </div>
+
+        {bookingData.cleaningType === 'subscription' && (
+          <div className="space-y-2">
+            <Label htmlFor="months">Subscription Length</Label>
+            <Select value={bookingData.months.toString()} onValueChange={(value) => updateBookingData({ months: parseInt(value) })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 Month</SelectItem>
+                <SelectItem value="2">2 Months</SelectItem>
+                <SelectItem value="3">3 Months</SelectItem>
+                <SelectItem value="4">4 Months</SelectItem>
+                <SelectItem value="5">5 Months</SelectItem>
+                <SelectItem value="6">6 Months</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
