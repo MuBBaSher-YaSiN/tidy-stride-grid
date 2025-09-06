@@ -127,6 +127,21 @@ serve(async (req) => {
     const jobDateIso = `${bookingData.startDate}T${time24}:00Z`;
     logStep("Job date parsed", { originalTime: bookingData.startTime, time24, jobDateIso });
 
+    // Determine payment mode based on cleaningType
+    const isSubscription = bookingData.cleaningType === "subscription";
+    const checkoutMode = isSubscription ? "setup" : "payment";
+    
+    logStep("Payment mode determined", { 
+      cleaningType: bookingData.cleaningType, 
+      isSubscription, 
+      checkoutMode 
+    });
+
+    // Parse time and create proper job date
+    const time24 = parseTime24Hour(bookingData.startTime);
+    const jobDateIso = `${bookingData.startDate}T${time24}:00Z`;
+    logStep("Job date parsed", { originalTime: bookingData.startTime, time24, jobDateIso });
+
     // Insert booking into database first
     const { data: booking, error: bookingError } = await supabaseClient
       .from("bookings")
@@ -208,9 +223,6 @@ serve(async (req) => {
     }
 
     const origin = req.headers.get("origin") || "http://localhost:3000";
-    
-    // Determine if this is a subscription or one-time payment
-    const isSubscription = bookingData.cleaningType === 'subscription';
     
     if (isSubscription) {
       logStep("Creating setup session for subscription");
