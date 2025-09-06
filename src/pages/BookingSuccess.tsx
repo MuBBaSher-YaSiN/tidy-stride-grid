@@ -71,9 +71,13 @@ export default function BookingSuccess() {
             setBooking(bookingData);
             console.log("Booking details loaded:", bookingData);
             
+            // Show appropriate success message based on payment mode
+            const isOneTime = bookingData.payment_mode === 'one-time';
             toast({
               title: "Booking Confirmed!",
-              description: "Your payment method has been set up successfully. You'll be charged after service completion.",
+              description: isOneTime 
+                ? "Your payment has been processed successfully. Thank you for your booking!"
+                : "Your payment method has been set up successfully. You'll be charged after service completion.",
             });
           }
         } else {

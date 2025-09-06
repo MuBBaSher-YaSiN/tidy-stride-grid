@@ -94,28 +94,37 @@ serve(async (req) => {
       throw new Error("Customer not found in Stripe");
     }
 
-    // Get the customer's default payment method
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: job.bookings.stripe_customer_id,
-      type: 'card',
-      limit: 1
-    });
+    // Determine the payment method to use
+    let paymentMethodId = null;
+    
+    // First try to get default payment method from customer settings
+    if (customer.invoice_settings?.default_payment_method) {
+      paymentMethodId = customer.invoice_settings.default_payment_method as string;
+      logStep("Using customer default payment method", { paymentMethodId });
+    } else {
+      // Fallback to listing payment methods
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: job.bookings.stripe_customer_id,
+        type: 'card',
+        limit: 1
+      });
 
-    if (paymentMethods.data.length === 0) {
-      throw new Error("No payment method found for customer");
+      if (paymentMethods.data.length === 0) {
+        throw new Error("No payment method found for customer");
+      }
+
+      paymentMethodId = paymentMethods.data[0].id;
+      logStep("Using first available payment method", { paymentMethodId });
     }
 
-    const paymentMethodId = paymentMethods.data[0].id;
-    logStep("Payment method found", { paymentMethodId });
-
-    // Create payment intent and charge immediately
+    // Create payment intent and charge immediately for the CUSTOMER price, not contractor payout
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: job.payout_cents, // Use the job's payout amount
+      amount: job.price_cents, // Use the customer price, not payout_cents
       currency: "usd",
       customer: job.bookings.stripe_customer_id,
       payment_method: paymentMethodId,
+      off_session: true, // This is important for charging saved payment methods
       confirm: true, // Charge immediately
-      return_url: `${req.headers.get("origin") || "http://localhost:3000"}/`,
       metadata: {
         job_id: job.id,
         booking_id: job.bookings.id,
@@ -128,6 +137,28 @@ serve(async (req) => {
       status: paymentIntent.status 
     });
 
+    // Safely extract charge ID
+    const chargeId = paymentIntent.charges?.data?.[0]?.id || null;
+    
+    // Determine payment status based on PaymentIntent status
+    let paymentStatus = 'pending';
+    let paidAt = null;
+    let failedAt = null;
+    let failureReason = null;
+    
+    if (paymentIntent.status === 'succeeded') {
+      paymentStatus = 'completed';
+      paidAt = new Date().toISOString();
+    } else if (paymentIntent.status === 'requires_action' || 
+               paymentIntent.status === 'processing' || 
+               paymentIntent.status === 'requires_confirmation') {
+      paymentStatus = 'pending';
+    } else {
+      paymentStatus = 'failed';
+      failedAt = new Date().toISOString();
+      failureReason = paymentIntent.last_payment_error?.message || 'Payment failed';
+    }
+
     // Record the payment in customer_payments table
     const { error: paymentError } = await supabaseClient
       .from("customer_payments")
@@ -135,18 +166,18 @@ serve(async (req) => {
         booking_id: job.bookings.id,
         job_id: job.id,
         stripe_payment_intent_id: paymentIntent.id,
-        stripe_charge_id: paymentIntent.charges.data[0]?.id,
+        stripe_charge_id: chargeId,
         customer_email: job.bookings.customer_email,
         customer_name: job.bookings.customer_name,
-        amount_cents: job.payout_cents,
-        payment_status: paymentIntent.status === 'succeeded' ? 'completed' : 'failed',
+        amount_cents: job.price_cents, // Use customer price, not payout
+        payment_status: paymentStatus,
         payment_type: 'recurring',
         payment_method: 'card',
-        stripe_fee_cents: Math.round(job.payout_cents * 0.029 + 30), // Estimate Stripe fees
-        net_amount_cents: Math.round(job.payout_cents * 0.971),
-        paid_at: paymentIntent.status === 'succeeded' ? new Date().toISOString() : null,
-        failed_at: paymentIntent.status === 'failed' ? new Date().toISOString() : null,
-        failure_reason: paymentIntent.status === 'failed' ? paymentIntent.last_payment_error?.message : null
+        stripe_fee_cents: Math.round(job.price_cents * 0.029 + 30), // Estimate Stripe fees
+        net_amount_cents: Math.round(job.price_cents * 0.971),
+        paid_at: paidAt,
+        failed_at: failedAt,
+        failure_reason: failureReason
       });
 
     if (paymentError) {
@@ -160,7 +191,7 @@ serve(async (req) => {
       success: true,
       payment_intent_id: paymentIntent.id,
       status: paymentIntent.status,
-      amount: job.payout_cents
+      amount: job.price_cents
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

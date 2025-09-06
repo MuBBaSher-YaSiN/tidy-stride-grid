@@ -84,6 +84,20 @@ serve(async (req) => {
         bookingStatus = 'confirmed';
         logStep("Payment completed immediately");
         
+        // Get payment intent details to access charges safely
+        let paymentIntent = null;
+        let chargeId = null;
+        
+        if (session.payment_intent) {
+          try {
+            paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent as string);
+            chargeId = paymentIntent.charges?.data?.[0]?.id || null;
+            logStep("Retrieved payment intent", { paymentIntentId: paymentIntent.id, chargeId });
+          } catch (piError) {
+            logStep("ERROR: Failed to retrieve payment intent", { error: piError });
+          }
+        }
+        
         // Update or create customer payment record
         const { data: existingPayment, error: paymentSelectError } = await supabaseClient
           .from("customer_payments")
@@ -101,10 +115,7 @@ serve(async (req) => {
             .from("customer_payments")
             .update({
               stripe_payment_intent_id: session.payment_intent,
-              stripe_charge_id: session.charges?.data?.[0]?.id || 
-                (session.payment_intent ? 
-                  (await stripe.paymentIntents.retrieve(session.payment_intent as string)).charges.data[0]?.id 
-                  : null),
+              stripe_charge_id: chargeId,
               payment_status: session.payment_status === 'paid' ? 'completed' : 'failed',
               paid_at: session.payment_status === 'paid' ? new Date().toISOString() : null,
               failed_at: session.payment_status !== 'paid' ? new Date().toISOString() : null,
@@ -126,10 +137,7 @@ serve(async (req) => {
               customer_name: booking.customer_name,
               amount_cents: booking.total_price_cents,
               stripe_payment_intent_id: session.payment_intent,
-              stripe_charge_id: session.charges?.data?.[0]?.id || 
-                (session.payment_intent ? 
-                  (await stripe.paymentIntents.retrieve(session.payment_intent as string)).charges.data[0]?.id 
-                  : null),
+              stripe_charge_id: chargeId,
               payment_status: 'completed',
               payment_type: 'initial',
               payment_method: 'card',

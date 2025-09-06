@@ -121,23 +121,57 @@ const JobManagement = () => {
     }
   };
 
-  const updateJobStatus = async (jobId: string, newStatus: string) => {
+  const handleUpdateJobStatus = async (jobId: string, newStatus: string) => {
     try {
       const { error } = await supabase
-        .from('jobs')
-        .update({ status: newStatus })
-        .eq('id', jobId);
+        .from("jobs")
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", jobId);
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `Job status updated to ${newStatus}`
-      });
+      // If approving a completed job, charge the customer for subscription bookings
+      if (newStatus === "Approved") {
+        try {
+          const { data, error: chargeError } = await supabase.functions.invoke(
+            "charge-job-completion",
+            { body: { job_id: jobId } }
+          );
+          
+          if (chargeError) {
+            console.error("Payment charging error:", chargeError);
+            toast({
+              title: "Job Approved",
+              description: "Job completed but payment charging failed. Please check payment manually.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Success",
+              description: `Job approved and ${data?.status === 'succeeded' ? 'payment charged' : 'payment processed'} successfully`
+            });
+          }
+        } catch (chargeErr) {
+          console.error("Payment charging error:", chargeErr);
+          toast({
+            title: "Job Approved", 
+            description: "Job completed but payment charging failed. Please check payment manually.",
+            variant: "destructive"
+          });
+        }
+      } else {
+        toast({
+          title: "Success",
+          description: `Job status updated to ${newStatus}`
+        });
+      }
 
       fetchJobs();
     } catch (error) {
-      console.error('Error updating job:', error);
+      console.error("Error updating job status:", error);
       toast({
         title: "Error",
         description: "Failed to update job status",
@@ -180,7 +214,7 @@ const JobManagement = () => {
       const { error } = await supabase
         .from('jobs')
         .update({ 
-          status: 'Completed',
+          status: 'Approved',
           admin_approved_at: new Date().toISOString()
         })
         .eq('id', jobId);
@@ -189,12 +223,12 @@ const JobManagement = () => {
 
       // For subscription bookings, charge the customer
       try {
-        const response = await supabase.functions.invoke('charge-job-completion', {
+        const { data, error: chargeError } = await supabase.functions.invoke('charge-job-completion', {
           body: { job_id: jobId }
         });
 
-        if (response.error) {
-          console.error('Payment charging error:', response.error);
+        if (chargeError) {
+          console.error('Payment charging error:', chargeError);
           toast({
             title: "Job Approved",
             description: "Job completed but payment charging failed. Please check payment manually.",
@@ -203,7 +237,7 @@ const JobManagement = () => {
         } else {
           toast({
             title: "Success", 
-            description: "Job approved and payment processed successfully"
+            description: `Job approved and ${data?.status === 'succeeded' ? 'payment charged' : 'payment processed'} successfully`
           });
         }
       } catch (paymentError) {

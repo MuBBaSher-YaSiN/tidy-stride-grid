@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
 // Helper logging function
@@ -12,6 +13,23 @@ const logStep = (step: string, details?: any) => {
   const timestamp = new Date().toISOString();
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CREATE-BOOKING-CHECKOUT] ${timestamp} ${step}${detailsStr}`);
+};
+
+// Helper function to parse time safely
+const parseTime24Hour = (timeStr: string): string => {
+  if (!timeStr) return "10:00";
+  
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!match) return "10:00";
+  
+  let hours = parseInt(match[1]);
+  const minutes = match[2];
+  const ampm = match[3]?.toUpperCase();
+  
+  if (ampm === 'PM' && hours !== 12) hours += 12;
+  if (ampm === 'AM' && hours === 12) hours = 0;
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes}`;
 };
 
 serve(async (req) => {
@@ -43,8 +61,8 @@ serve(async (req) => {
     logStep("Booking data received", { 
       customerEmail: bookingData.customerEmail,
       serviceType: bookingData.serviceType,
-      frequency: bookingData.frequency,
-      totalPrice: bookingData.totalPrice
+      totalPrice: bookingData.totalPrice,
+      cleaningType: bookingData.cleaningType
     });
 
     // Validate required fields
@@ -94,6 +112,21 @@ serve(async (req) => {
       logStep("New customer created", { customerId });
     }
 
+    // Determine payment mode based on cleaningType
+    const isSubscription = bookingData.cleaningType === "subscription";
+    const checkoutMode = isSubscription ? "setup" : "payment";
+    
+    logStep("Payment mode determined", { 
+      cleaningType: bookingData.cleaningType, 
+      isSubscription, 
+      checkoutMode 
+    });
+
+    // Parse time and create proper job date
+    const time24 = parseTime24Hour(bookingData.startTime);
+    const jobDateIso = `${bookingData.startDate}T${time24}:00Z`;
+    logStep("Job date parsed", { originalTime: bookingData.startTime, time24, jobDateIso });
+
     // Insert booking into database first
     const { data: booking, error: bookingError } = await supabaseClient
       .from("bookings")
@@ -117,7 +150,7 @@ serve(async (req) => {
         laundry: bookingData.addOns?.laundry || false,
         inside_fridge: bookingData.addOns?.insideFridge || false,
         inside_windows: bookingData.addOns?.insideWindows || false,
-        frequency: bookingData.cleaningType === 'one-time' ? 'one-time' : 'weekly',
+        frequency: bookingData.cleaningType === 'one-time' ? 'one-time' : bookingData.frequency,
         base_price_cents: Math.round(bookingData.basePrice * 100),
         total_price_cents: Math.round(bookingData.totalPrice * 100),
         parking_info: bookingData.parkingInfo,
@@ -125,7 +158,9 @@ serve(async (req) => {
         access_method: bookingData.accessMethod,
         special_instructions: bookingData.specialInstructions,
         stripe_customer_id: customerId,
-        payment_status: 'pending'
+        payment_mode: isSubscription ? "subscription" : "one-time",
+        payment_status: isSubscription ? "pending" : "processing",
+        booking_status: "processing"
       })
       .select()
       .single();
@@ -134,7 +169,43 @@ serve(async (req) => {
       logStep("ERROR: Failed to create booking", { error: bookingError });
       throw new Error(`Failed to create booking: ${bookingError.message}`);
     }
-    logStep("Booking created in database", { bookingId: booking.id });
+
+    logStep("Booking created successfully", { bookingId: booking.id });
+
+    // Create job record using the helper function
+    try {
+      const { data: jobData, error: jobError } = await supabaseClient
+        .from("jobs")
+        .insert({
+          booking_id: booking.id,
+          date: jobDateIso,
+          price_cents: Math.round(bookingData.totalPrice * 100),
+          payout_cents: Math.round(bookingData.totalPrice * 100 * 0.7),
+          city: bookingData.city,
+          status: 'New',
+          notes: `Booking #${booking.id} - ${bookingData.customerName} - ${bookingData.address}`
+        })
+        .select()
+        .single();
+      
+      if (jobError) {
+        logStep("WARNING: Failed to create job via direct insert", { error: jobError });
+        // Fallback to RPC function
+        const { data: rpcResult, error: rpcError } = await supabaseClient.rpc('create_job_from_booking', {
+          p_booking_id: booking.id
+        });
+        if (rpcError) {
+          logStep("WARNING: Failed to create job via RPC", { error: rpcError });
+        } else {
+          logStep("Job created via RPC fallback", { jobId: rpcResult });
+        }
+      } else {
+        logStep("Job created successfully", { jobId: jobData.id });
+      }
+    } catch (jobErr) {
+      logStep("WARNING: Job creation failed", { error: jobErr });
+      // Don't fail the entire booking process if job creation fails
+    }
 
     const origin = req.headers.get("origin") || "http://localhost:3000";
     
