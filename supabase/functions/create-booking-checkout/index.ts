@@ -33,8 +33,11 @@ const parseTime24Hour = (timeStr: string): string => {
 };
 
 serve(async (req) => {
+  logStep("=== FUNCTION INVOKED ===", { method: req.method, url: req.url });
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    logStep("Handling CORS preflight");
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -220,7 +223,7 @@ serve(async (req) => {
           property_sqft: requestData.sqft,
           service_type: requestData.serviceType,
           cleaning_date: requestData.startDate,
-          cleaning_time: requestData.startTime,
+          cleaning_time: time24, // Use parsed 24-hour time instead of original
           subscription_months: requestData.months,
           deep_cleaning: requestData.addOns?.deepCleaning || false,
           laundry: requestData.addOns?.laundry || false,
@@ -243,12 +246,18 @@ serve(async (req) => {
         .single();
 
       if (bookingError) {
-        logStep("ERROR: Failed to create booking", { error: bookingError });
+        logStep("ERROR: Failed to create booking", { 
+          error: bookingError,
+          code: bookingError.code,
+          message: bookingError.message,
+          details: bookingError.details,
+          hint: bookingError.hint
+        });
         if (bookingError.code === '23514') {
           // Check constraint violation - likely validation failed
           throw new Error("Booking data validation failed. Please check your information and try again.");
         }
-        throw new Error(`Failed to create booking: ${bookingError.message}`);
+        throw new Error(`Failed to create booking: ${bookingError.message} (Code: ${bookingError.code})`);
       }
 
       booking = bookingRecord;
@@ -453,10 +462,20 @@ serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in create-booking-checkout", { message: errorMessage });
+    const errorCode = error?.code || 'UNKNOWN';
+    const errorDetails = error?.details || 'No additional details';
+    
+    logStep("ERROR in create-booking-checkout", { 
+      message: errorMessage,
+      code: errorCode,
+      details: errorDetails,
+      stack: error instanceof Error ? error.stack : 'No stack'
+    });
     
     return new Response(JSON.stringify({ 
       error: errorMessage,
+      code: errorCode,
+      details: errorDetails,
       timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
