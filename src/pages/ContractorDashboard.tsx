@@ -59,6 +59,7 @@ const ContractorDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [contractor, setContractor] = useState<any>(null);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -147,17 +148,20 @@ const ContractorDashboard = () => {
       if (!user?.id) return;
 
       // Get contractor ID first
-      const { data: contractor } = await supabase
+      const { data: contractorData } = await supabase
         .from('contractors')
         .select('id')
         .eq('user_id', user.id)
         .single();
 
-      if (!contractor) {
+      if (!contractorData) {
         console.log('No contractor found for user');
         setLoading(false);
         return;
       }
+
+      // Store contractor data for later use
+      setContractor(contractorData);
 
       // Fetch my jobs (claimed or assigned to this contractor, RLS will auto-filter)
       const { data, error } = await supabase
@@ -172,7 +176,7 @@ const ContractorDashboard = () => {
             service_type
           )
         `)
-        .or(`claimed_by.eq.${contractor.id},contractor_id.eq.${contractor.id}`)
+        .or(`claimed_by.eq.${contractorData.id},contractor_id.eq.${contractorData.id}`)
         .order('date', { ascending: true });
 
       if (error) throw error;
@@ -201,14 +205,7 @@ const ContractorDashboard = () => {
 
   const claimJob = async (jobId: string) => {
     try {
-      // Get contractor ID first
-      const { data: contractor } = await supabase
-        .from('contractors')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!contractor) {
+      if (!contractor?.id) {
         toast({
           title: "Error",
           description: "Contractor profile not found",
@@ -266,11 +263,6 @@ const ContractorDashboard = () => {
       // If job is submitted, create payment request
       if (newStatus === 'Submitted') {
         const job = myJobs.find(j => j.id === jobId);
-        const { data: contractor } = await supabase
-          .from('contractors')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
 
         if (job && contractor) {
           const { error: paymentError } = await supabase
@@ -299,6 +291,22 @@ const ContractorDashboard = () => {
       toast({
         title: "Error",
         description: "Failed to update job status",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      navigate('/contractor');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to logout",
         variant: "destructive"
       });
     }
@@ -351,19 +359,6 @@ const ContractorDashboard = () => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      navigate('/contractor');
-    } catch (error) {
-      console.error('Error logging out:', error);
-      toast({
-        title: "Error",
-        description: "Failed to logout",
-        variant: "destructive"
-      });
-    }
-  };
 
   // Show loading while checking authentication
   if (!isAuthChecked) {
