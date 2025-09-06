@@ -158,6 +158,7 @@ export type Database = {
       contractors: {
         Row: {
           city: string | null
+          city_norm: string | null
           created_at: string | null
           email: string
           id: string
@@ -169,6 +170,7 @@ export type Database = {
         }
         Insert: {
           city?: string | null
+          city_norm?: string | null
           created_at?: string | null
           email: string
           id?: string
@@ -180,6 +182,7 @@ export type Database = {
         }
         Update: {
           city?: string | null
+          city_norm?: string | null
           created_at?: string | null
           email?: string
           id?: string
@@ -224,6 +227,7 @@ export type Database = {
           admin_rejected_at: string | null
           booking_id: string | null
           city: string | null
+          city_norm: string | null
           claimed_at: string | null
           claimed_by: string | null
           completed_at: string | null
@@ -248,6 +252,7 @@ export type Database = {
           admin_rejected_at?: string | null
           booking_id?: string | null
           city?: string | null
+          city_norm?: string | null
           claimed_at?: string | null
           claimed_by?: string | null
           completed_at?: string | null
@@ -272,6 +277,7 @@ export type Database = {
           admin_rejected_at?: string | null
           booking_id?: string | null
           city?: string | null
+          city_norm?: string | null
           claimed_at?: string | null
           claimed_by?: string | null
           completed_at?: string | null

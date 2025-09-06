@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { CleanNamiButton } from "@/components/ui/button-variants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,33 +59,67 @@ const ContractorDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    getCurrentUser();
-  }, []);
+    let cancelled = false;
+
+    const initializeAuth = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!cancelled) {
+          if (!user) {
+            navigate('/contractor');
+            return;
+          }
+          
+          setUser(user);
+          setIsAuthChecked(true);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error getting user:', error);
+          navigate('/contractor');
+        }
+      }
+    };
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!cancelled) {
+        if (event === 'SIGNED_OUT' || !session) {
+          navigate('/contractor');
+        } else if (session?.user) {
+          setUser(session.user);
+          setIsAuthChecked(true);
+        }
+      }
+    });
+
+    initializeAuth();
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   useEffect(() => {
-    if (user) {
+    if (user && isAuthChecked) {
       fetchJobs();
       fetchMyJobs();
     }
-  }, [user]);
-
-  const getCurrentUser = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    } catch (error) {
-      console.error('Error getting user:', error);
-    }
-  };
+  }, [user, isAuthChecked]);
 
   const fetchJobs = async () => {
     try {
       if (!user?.id) return;
 
-      // Fetch available jobs (RLS will auto-filter by contractor's city and status='New')
+      // Wait for user session to be ready, then fetch available jobs
+      // RLS will auto-filter by contractor's city_norm and status='New'
       const { data, error } = await supabase
         .from('jobs')
         .select(`
@@ -317,6 +351,32 @@ const ContractorDashboard = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate('/contractor');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to logout",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Show loading while checking authentication
+  if (!isAuthChecked) {
+    return (
+      <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg font-medium text-primary">Loading...</div>
+          <div className="text-sm text-muted-foreground">Checking authentication</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-hero">
       {/* Navigation */}
@@ -334,12 +394,14 @@ const ContractorDashboard = () => {
               <Badge variant="secondary" className="px-3 py-1">
                 Contractor
               </Badge>
-              <Link to="/contractor">
-                <CleanNamiButton variant="ghost" size="sm">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </CleanNamiButton>
-              </Link>
+              <CleanNamiButton 
+                variant="ghost" 
+                size="sm"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </CleanNamiButton>
             </div>
           </div>
         </div>
