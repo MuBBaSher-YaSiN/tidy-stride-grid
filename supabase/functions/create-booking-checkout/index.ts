@@ -56,7 +56,16 @@ serve(async (req) => {
     );
     logStep("Supabase client initialized");
 
-    // Check rate limiting before processing booking
+    // Parse request body first
+    const bookingData = await req.json();
+    logStep("Booking data received", { 
+      customerEmail: bookingData.customerEmail,
+      serviceType: bookingData.serviceType,
+      totalPrice: bookingData.totalPrice,
+      cleaningType: bookingData.cleaningType
+    });
+
+    // Check rate limiting after parsing booking data
     const clientIP = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
     logStep("Rate limiting check", { email: bookingData.customerEmail, ip: clientIP });
 
@@ -76,9 +85,6 @@ serve(async (req) => {
     }
 
     logStep("Rate limit check passed");
-
-    // Parse request body
-    const bookingData = await req.json();
     logStep("Booking data received", { 
       customerEmail: bookingData.customerEmail,
       serviceType: bookingData.serviceType,
