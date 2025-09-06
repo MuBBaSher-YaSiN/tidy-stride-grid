@@ -75,3 +75,6 @@ verify_jwt = true
 
 [functions.charge-job-completion]
 verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false

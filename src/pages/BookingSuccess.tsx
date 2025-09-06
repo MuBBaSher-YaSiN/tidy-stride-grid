@@ -145,7 +145,10 @@ export default function BookingSuccess() {
               Booking Confirmed!
             </CardTitle>
             <p className="text-gray-600 mt-2">
-              Your cleaning service has been successfully booked. Payment method is set up and you'll be charged after service completion.
+              {booking?.payment_mode === 'one-time' 
+                ? "Your payment has been processed successfully. Thank you for your booking!"
+                : "Your payment method has been set up successfully. You'll be charged after service completion."
+              }
             </p>
           </CardHeader>
 
@@ -187,7 +190,10 @@ export default function BookingSuccess() {
                   <div className="text-sm text-purple-800">
                     <p><strong>Total Cost:</strong> {formatCurrency(booking.total_price_cents)}</p>
                     <p className="text-xs mt-1">
-                      * You'll be charged after service completion
+                      {booking.payment_mode === 'one-time' 
+                        ? "* Payment has been processed successfully"
+                        : "* You'll be charged after service completion"
+                      }
                     </p>
                   </div>
                 </div>
@@ -200,7 +206,10 @@ export default function BookingSuccess() {
                 <li>• You'll receive a confirmation email shortly</li>
                 <li>• A cleaner will be assigned to your booking</li>
                 <li>• You'll be contacted 24 hours before your scheduled cleaning</li>
-                <li>• Payment will be processed automatically after service completion</li>
+                {booking?.payment_mode === 'one-time' 
+                  ? <li>• Your payment has been processed successfully</li>
+                  : <li>• Payment will be processed automatically after service completion</li>
+                }
                 {booking?.frequency !== 'one-time' && (
                   <li>• Future cleanings will be scheduled according to your selected frequency</li>
                 )}
@@ -210,10 +219,21 @@ export default function BookingSuccess() {
             <div className="bg-orange-50 p-4 rounded-lg">
               <h3 className="font-semibold text-orange-900 mb-2">Important Information</h3>
               <ul className="space-y-2 text-sm text-orange-800">
-                <li>• No upfront payment required - charges apply after service completion</li>
-                <li>• You can modify or cancel your booking up to 24 hours in advance</li>
-                <li>• Our cleaning service comes with a satisfaction guarantee</li>
-                <li>• You'll receive email notifications for all upcoming cleanings</li>
+                {booking?.payment_mode === 'one-time' ? (
+                  <>
+                    <li>• Payment has been processed - no further charges for this service</li>
+                    <li>• You can book additional cleanings at any time</li>
+                    <li>• Our cleaning service comes with a satisfaction guarantee</li>
+                    <li>• You'll receive email notifications about your upcoming cleaning</li>
+                  </>
+                ) : (
+                  <>
+                    <li>• No upfront payment required - charges apply after service completion</li>
+                    <li>• You can modify or cancel your booking up to 24 hours in advance</li>
+                    <li>• Our cleaning service comes with a satisfaction guarantee</li>
+                    <li>• You'll receive email notifications for all upcoming cleanings</li>
+                  </>
+                )}
               </ul>
             </div>
 
