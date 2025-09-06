@@ -255,16 +255,12 @@ const JobManagement = () => {
   const getJobActions = (job: Job) => {
     switch (job.status) {
       case 'New':
-        return (
-          <CleanNamiButton 
-            variant="success" 
-            size="sm"
-            onClick={() => updateJobStatus(job.id, 'Assigned')}
-          >
-            <CheckCircle className="h-4 w-4 mr-1" />
-            Approve
-          </CleanNamiButton>
-        );
+        if (!job.claimed_by) {
+          return (
+            <Badge variant="outline">New</Badge>
+          );
+        }
+        return null;
       case 'Claimed':
         if (job.claimed_by) {
           return (
@@ -278,6 +274,14 @@ const JobManagement = () => {
           );
         }
         return null;
+      case 'Assigned':
+        return (
+          <Badge variant="default">In Progress</Badge>
+        );
+      case 'InProgress':
+        return (
+          <Badge variant="outline">In Progress</Badge>
+        );
       case 'Submitted':
         return (
           <div className="flex space-x-2">
@@ -287,7 +291,7 @@ const JobManagement = () => {
               onClick={() => approveCompletedJob(job.id)}
             >
               <CheckCircle className="h-4 w-4 mr-1" />
-              Approve
+              Accept
             </CleanNamiButton>
             <CleanNamiButton 
               variant="destructive" 
@@ -297,6 +301,10 @@ const JobManagement = () => {
               Reject
             </CleanNamiButton>
           </div>
+        );
+      case 'Completed':
+        return (
+          <Badge variant="default">Completed</Badge>
         );
       default:
         return null;

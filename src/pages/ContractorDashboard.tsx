@@ -76,8 +76,43 @@ const ContractorDashboard = () => {
             navigate('/contractor');
             return;
           }
+
+          // Check if user has contractor role
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+          if (profile?.role === 'admin') {
+            toast({
+              title: "Access Denied",
+              description: "Admins cannot access contractor dashboard",
+              variant: "destructive"
+            });
+            navigate('/admin');
+            return;
+          }
+
+          // Verify user has contractor record
+          const { data: contractorData } = await supabase
+            .from('contractors')
+            .select('id, name, email, city')
+            .eq('user_id', user.id)
+            .single();
+
+          if (!contractorData) {
+            toast({
+              title: "Access Denied",
+              description: "No contractor profile found",
+              variant: "destructive"
+            });
+            navigate('/contractor');
+            return;
+          }
           
           setUser(user);
+          setContractor(contractorData);
           setIsAuthChecked(true);
         }
       } catch (error) {
