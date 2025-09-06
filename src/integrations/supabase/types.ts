@@ -84,6 +84,7 @@ export type Database = {
           booking_status: string | null
           cleaning_date: string
           cleaning_time: string | null
+          cleaning_type: string | null
           created_at: string
           customer_email: string
           customer_name: string
@@ -121,6 +122,7 @@ export type Database = {
           booking_status?: string | null
           cleaning_date: string
           cleaning_time?: string | null
+          cleaning_type?: string | null
           created_at?: string
           customer_email: string
           customer_name: string
@@ -158,6 +160,7 @@ export type Database = {
           booking_status?: string | null
           cleaning_date?: string
           cleaning_time?: string | null
+          cleaning_type?: string | null
           created_at?: string
           customer_email?: string
           customer_name?: string
