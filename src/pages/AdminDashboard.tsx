@@ -56,13 +56,13 @@ const AdminDashboard = () => {
         .select('*, bookings:booking_id(customer_name, property_address, property_city)')
         .order('date', { ascending: false });
       const { data: contractors } = await supabase.from('contractors').select('*');
-      const { data: payments } = await supabase.from('payment_events').select('*');
+      const { data: payments } = await supabase.from('customer_payments').select('*');
 
       const totalJobs = jobs?.length || 0;
       const activeContractors = contractors?.length || 0;
       const pendingJobs = jobs?.filter(job => job.status === 'New').length || 0;
       const completedJobs = jobs?.filter(job => job.status === 'Completed').length || 0;
-      const pendingPayments = payments?.filter(p => p.status === 'pending').length || 0;
+      const pendingPayments = payments?.filter(p => p.payment_status === 'pending').length || 0;
       
       // Calculate monthly revenue from completed jobs
       const currentMonth = new Date().getMonth();
@@ -104,7 +104,7 @@ const AdminDashboard = () => {
 
       if (payments && payments.length > 0) {
         const recentPayments = payments
-          .filter(p => p.status === 'completed')
+          .filter(p => p.payment_status === 'completed')
           .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
           .slice(0, 1);
         
@@ -112,7 +112,7 @@ const AdminDashboard = () => {
           activities.push({
             id: `payment-${payment.id}`,
             type: 'Payment',
-            description: `$${(payment.amount_cents / 100).toFixed(2)} payment processed`,
+            description: `$${(payment.amount_cents / 100).toFixed(2)} payment processed for ${payment.customer_name}`,
             timestamp: new Date(payment.updated_at || payment.created_at).toLocaleString()
           });
         });
