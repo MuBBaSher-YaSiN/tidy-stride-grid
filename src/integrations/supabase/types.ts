@@ -44,6 +44,39 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_rate_limits: {
+        Row: {
+          attempt_count: number
+          blocked_until: string | null
+          created_at: string
+          first_attempt_at: string
+          id: string
+          identifier: string
+          identifier_type: string
+          last_attempt_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          blocked_until?: string | null
+          created_at?: string
+          first_attempt_at?: string
+          id?: string
+          identifier: string
+          identifier_type: string
+          last_attempt_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          blocked_until?: string | null
+          created_at?: string
+          first_attempt_at?: string
+          id?: string
+          identifier?: string
+          identifier_type?: string
+          last_attempt_at?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           access_method: string | null
@@ -710,6 +743,18 @@ export type Database = {
       }
       is_admin: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      validate_booking_data: {
+        Args: {
+          p_customer_email: string
+          p_customer_phone: string
+          p_property_address: string
+          p_property_city: string
+          p_property_state: string
+          p_property_zipcode: string
+          p_total_price_cents: number
+        }
         Returns: boolean
       }
     }
