@@ -737,6 +737,10 @@ export type Database = {
         Args: { baths: number; beds: number; sqft: number }
         Returns: number
       }
+      check_booking_rate_limit: {
+        Args: { p_email: string; p_ip?: string }
+        Returns: boolean
+      }
       create_job_from_booking: {
         Args: { p_booking_id: string }
         Returns: string
