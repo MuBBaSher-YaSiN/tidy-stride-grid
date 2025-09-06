@@ -48,13 +48,34 @@ serve(async (req) => {
     }
     logStep("Stripe key verified");
 
-    // Initialize Supabase client with service role
+    // Initialize Supabase client with service role for rate limiting
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );
     logStep("Supabase client initialized");
+
+    // Check rate limiting before processing booking
+    const clientIP = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+    logStep("Rate limiting check", { email: bookingData.customerEmail, ip: clientIP });
+
+    // Check if this email or IP is rate limited
+    const { data: rateLimitCheck, error: rateLimitError } = await supabaseClient
+      .rpc('check_booking_rate_limit', {
+        p_email: bookingData.customerEmail,
+        p_ip: clientIP
+      });
+
+    if (rateLimitError) {
+      logStep("ERROR: Rate limit check failed", { error: rateLimitError });
+      // Continue with booking - don't fail on rate limit check errors
+    } else if (!rateLimitCheck) {
+      logStep("ERROR: Rate limit exceeded", { email: bookingData.customerEmail, ip: clientIP });
+      throw new Error("Too many booking attempts. Please try again later.");
+    }
+
+    logStep("Rate limit check passed");
 
     // Parse request body
     const bookingData = await req.json();
@@ -65,7 +86,7 @@ serve(async (req) => {
       cleaningType: bookingData.cleaningType
     });
 
-    // Validate required fields
+    // Validate required fields with enhanced security checks
     const requiredFields = [
       'customerName', 'customerEmail', 'customerPhone',
       'address', 'city', 'state', 'zipcode', 'beds', 'baths', 'sqft',
@@ -78,7 +99,37 @@ serve(async (req) => {
         throw new Error(`Missing required field: ${field}`);
       }
     }
-    logStep("All required fields validated");
+
+    // Enhanced input validation
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(bookingData.customerEmail)) {
+      logStep("ERROR: Invalid email format", { email: bookingData.customerEmail });
+      throw new Error("Invalid email address format");
+    }
+
+    if (bookingData.customerName.trim().length < 2 || bookingData.customerName.trim().length > 100) {
+      logStep("ERROR: Invalid customer name", { name: bookingData.customerName });
+      throw new Error("Customer name must be between 2 and 100 characters");
+    }
+
+    if (bookingData.totalPrice < 50 || bookingData.totalPrice > 5000) {
+      logStep("ERROR: Invalid price range", { price: bookingData.totalPrice });
+      throw new Error("Price must be between $50 and $5000");
+    }
+
+    if (bookingData.beds < 1 || bookingData.beds > 20 || bookingData.baths < 1 || bookingData.baths > 20) {
+      logStep("ERROR: Invalid property specifications", { beds: bookingData.beds, baths: bookingData.baths });
+      throw new Error("Invalid property specifications");
+    }
+
+    const bookingDate = new Date(bookingData.startDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (bookingDate < today) {
+      logStep("ERROR: Invalid booking date", { date: bookingData.startDate });
+      throw new Error("Booking date cannot be in the past");
+    }
+
+    logStep("All required fields and validations passed");
 
     // Initialize Stripe
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
@@ -89,6 +140,23 @@ serve(async (req) => {
     if (!emailRegex.test(bookingData.customerEmail)) {
       logStep("ERROR: Invalid email format", { email: bookingData.customerEmail });
       throw new Error(`Invalid email address: ${bookingData.customerEmail}`);
+    }
+
+    // Additional security: Check for suspicious patterns
+    const suspiciousPatterns = [
+      /test@/i,
+      /fake@/i,
+      /spam@/i,
+      /abuse@/i,
+      /@temp/i,
+      /@10minute/i,
+      /@guerrilla/i
+    ];
+
+    const isSuspiciousEmail = suspiciousPatterns.some(pattern => pattern.test(bookingData.customerEmail));
+    if (isSuspiciousEmail) {
+      logStep("WARNING: Suspicious email pattern detected", { email: bookingData.customerEmail });
+      // Log but don't block - might be legitimate
     }
 
     // Check if customer already exists
@@ -127,51 +195,66 @@ serve(async (req) => {
     const jobDateIso = `${bookingData.startDate}T${time24}:00Z`;
     logStep("Job date parsed", { originalTime: bookingData.startTime, time24, jobDateIso });
 
-    // Insert booking into database first
-    const { data: booking, error: bookingError } = await supabaseClient
-      .from("bookings")
-      .insert({
-        customer_name: bookingData.customerName,
-        customer_email: bookingData.customerEmail,
-        customer_phone: bookingData.customerPhone,
-        property_address: bookingData.address,
-        property_city: bookingData.city,
-        property_state: bookingData.state,
-        property_zipcode: bookingData.zipcode,
-        property_beds: bookingData.beds,
-        property_baths: bookingData.baths,
-        property_half_baths: bookingData.halfBaths || 0,
-        property_sqft: bookingData.sqft,
-        service_type: bookingData.serviceType,
-        cleaning_date: bookingData.startDate,
-        cleaning_time: bookingData.startTime,
-        subscription_months: bookingData.months,
-        deep_cleaning: bookingData.addOns?.deepCleaning || false,
-        laundry: bookingData.addOns?.laundry || false,
-        inside_fridge: bookingData.addOns?.insideFridge || false,
-        inside_windows: bookingData.addOns?.insideWindows || false,
-        cleaning_type: bookingData.cleaningType,
-        frequency: bookingData.cleaningType === 'one-time' ? 'one-time' : bookingData.frequency,
-        base_price_cents: Math.round(bookingData.basePrice * 100),
-        total_price_cents: Math.round(bookingData.totalPrice * 100),
-        parking_info: bookingData.parkingInfo,
-        schedule_flexibility: bookingData.scheduleFlexibility,
-        access_method: bookingData.accessMethod,
-        special_instructions: bookingData.specialInstructions,
-        stripe_customer_id: customerId,
-        payment_mode: isSubscription ? "subscription" : "one-time",
-        payment_status: isSubscription ? "pending" : "processing",
-        booking_status: "processing"
-      })
-      .select()
-      .single();
+    // Insert booking into database with enhanced error handling
+    let booking;
+    try {
+      const { data: bookingData, error: bookingError } = await supabaseClient
+        .from("bookings")
+        .insert({
+          customer_name: bookingData.customerName,
+          customer_email: bookingData.customerEmail,
+          customer_phone: bookingData.customerPhone,
+          property_address: bookingData.address,
+          property_city: bookingData.city,
+          property_state: bookingData.state,
+          property_zipcode: bookingData.zipcode,
+          property_beds: bookingData.beds,
+          property_baths: bookingData.baths,
+          property_half_baths: bookingData.halfBaths || 0,
+          property_sqft: bookingData.sqft,
+          service_type: bookingData.serviceType,
+          cleaning_date: bookingData.startDate,
+          cleaning_time: bookingData.startTime,
+          subscription_months: bookingData.months,
+          deep_cleaning: bookingData.addOns?.deepCleaning || false,
+          laundry: bookingData.addOns?.laundry || false,
+          inside_fridge: bookingData.addOns?.insideFridge || false,
+          inside_windows: bookingData.addOns?.insideWindows || false,
+          cleaning_type: bookingData.cleaningType,
+          frequency: bookingData.cleaningType === 'one-time' ? 'one-time' : bookingData.frequency,
+          base_price_cents: Math.round(bookingData.basePrice * 100),
+          total_price_cents: Math.round(bookingData.totalPrice * 100),
+          parking_info: bookingData.parkingInfo,
+          schedule_flexibility: bookingData.scheduleFlexibility,
+          access_method: bookingData.accessMethod,
+          special_instructions: bookingData.specialInstructions,
+          stripe_customer_id: customerId,
+          payment_mode: isSubscription ? "subscription" : "one-time",
+          payment_status: isSubscription ? "pending" : "processing",
+          booking_status: "processing"
+        })
+        .select()
+        .single();
 
-    if (bookingError) {
-      logStep("ERROR: Failed to create booking", { error: bookingError });
-      throw new Error(`Failed to create booking: ${bookingError.message}`);
+      if (bookingError) {
+        logStep("ERROR: Failed to create booking", { error: bookingError });
+        if (bookingError.code === '23514') {
+          // Check constraint violation - likely validation failed
+          throw new Error("Booking data validation failed. Please check your information and try again.");
+        }
+        throw new Error(`Failed to create booking: ${bookingError.message}`);
+      }
+
+      booking = bookingData;
+      logStep("Booking created successfully", { bookingId: booking.id });
+
+    } catch (error) {
+      logStep("ERROR: Booking creation failed", { error: error.message });
+      if (error.message.includes('validation failed')) {
+        throw new Error("The booking information provided does not meet our security requirements. Please verify your details and try again.");
+      }
+      throw error;
     }
-
-    logStep("Booking created successfully", { bookingId: booking.id });
 
     // Create job record using the helper function
     try {
