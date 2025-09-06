@@ -447,7 +447,7 @@ const BookingFlow = () => {
             onValueChange={(value: 'one-time' | 'subscription') => {
               updateBookingData({ 
                 cleaningType: value,
-                frequency: value === 'one-time' ? 'one-time' : 'weekly'
+        frequency: value === 'one-time' ? 'one-time' : 'weekly'
               });
             }}
           >

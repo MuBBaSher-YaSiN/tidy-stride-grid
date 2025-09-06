@@ -176,6 +176,7 @@ const JobManagement = () => {
 
   const approveCompletedJob = async (jobId: string) => {
     try {
+      // First approve the job
       const { error } = await supabase
         .from('jobs')
         .update({ 
@@ -186,10 +187,33 @@ const JobManagement = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Job approved and marked as completed"
-      });
+      // For subscription bookings, charge the customer
+      try {
+        const response = await supabase.functions.invoke('charge-job-completion', {
+          body: { job_id: jobId }
+        });
+
+        if (response.error) {
+          console.error('Payment charging error:', response.error);
+          toast({
+            title: "Job Approved",
+            description: "Job completed but payment charging failed. Please check payment manually.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Success", 
+            description: "Job approved and payment processed successfully"
+          });
+        }
+      } catch (paymentError) {
+        console.error('Payment processing error:', paymentError);
+        toast({
+          title: "Job Approved",
+          description: "Job completed but payment processing failed. Please check payment manually.",
+          variant: "destructive"
+        });
+      }
 
       fetchJobs();
     } catch (error) {

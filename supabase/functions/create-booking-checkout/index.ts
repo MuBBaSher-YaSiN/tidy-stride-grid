@@ -117,7 +117,7 @@ serve(async (req) => {
         laundry: bookingData.addOns?.laundry || false,
         inside_fridge: bookingData.addOns?.insideFridge || false,
         inside_windows: bookingData.addOns?.insideWindows || false,
-        frequency: bookingData.frequency,
+        frequency: bookingData.cleaningType === 'one-time' ? 'one-time' : 'weekly',
         base_price_cents: Math.round(bookingData.basePrice * 100),
         total_price_cents: Math.round(bookingData.totalPrice * 100),
         parking_info: bookingData.parkingInfo,
@@ -139,7 +139,7 @@ serve(async (req) => {
     const origin = req.headers.get("origin") || "http://localhost:3000";
     
     // Determine if this is a subscription or one-time payment
-    const isSubscription = bookingData.frequency !== 'one-time';
+    const isSubscription = bookingData.cleaningType === 'subscription';
     
     if (isSubscription) {
       logStep("Creating setup session for subscription");
@@ -245,20 +245,6 @@ serve(async (req) => {
           payment_status: 'processing'
         })
         .eq("id", booking.id);
-
-      // Create initial customer payment record
-      await supabaseClient
-        .from("customer_payments")
-        .insert({
-          booking_id: booking.id,
-          customer_email: bookingData.customerEmail,
-          customer_name: bookingData.customerName,
-          amount_cents: Math.round(bookingData.totalPrice * 100),
-          net_amount_cents: Math.round(bookingData.totalPrice * 100 * 0.971), // Estimate after Stripe fees
-          payment_status: 'pending',
-          payment_type: 'initial',
-          payment_method: 'card'
-        });
 
       // Create a job from the booking for admin dashboard (with fallback to RPC)
       const { data: jobRow, error: jobErr } = await supabaseClient

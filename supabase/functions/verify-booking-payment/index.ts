@@ -84,18 +84,64 @@ serve(async (req) => {
         bookingStatus = 'confirmed';
         logStep("Payment completed immediately");
         
-        // Update customer payment record to completed
-        await supabaseClient
-          .from('customer_payments')
-          .update({
-            payment_status: 'completed',
-            stripe_charge_id: session.payment_intent ? 
-              (await stripe.paymentIntents.retrieve(session.payment_intent as string)).charges.data[0]?.id 
-              : null,
-            paid_at: new Date().toISOString()
-          })
-          .eq('booking_id', booking_id)
-          .eq('payment_type', 'initial');
+        // Update or create customer payment record
+        const { data: existingPayment, error: paymentSelectError } = await supabaseClient
+          .from("customer_payments")
+          .select("id")
+          .eq("booking_id", booking_id)
+          .maybeSingle();
+
+        if (paymentSelectError && paymentSelectError.code !== 'PGRST116') {
+          logStep("ERROR: Failed to check existing payment", { error: paymentSelectError });
+        }
+
+        if (existingPayment) {
+          logStep("Updating existing payment record");
+          const { error: paymentUpdateError } = await supabaseClient
+            .from("customer_payments")
+            .update({
+              stripe_payment_intent_id: session.payment_intent,
+              stripe_charge_id: session.charges?.data?.[0]?.id || 
+                (session.payment_intent ? 
+                  (await stripe.paymentIntents.retrieve(session.payment_intent as string)).charges.data[0]?.id 
+                  : null),
+              payment_status: session.payment_status === 'paid' ? 'completed' : 'failed',
+              paid_at: session.payment_status === 'paid' ? new Date().toISOString() : null,
+              failed_at: session.payment_status !== 'paid' ? new Date().toISOString() : null,
+              failure_reason: session.payment_status !== 'paid' ? 'Payment failed at checkout' : null
+            })
+            .eq("id", existingPayment.id);
+
+          if (paymentUpdateError) {
+            logStep("ERROR: Failed to update payment record", { error: paymentUpdateError });
+          }
+        } else if (session.payment_status === 'paid') {
+          // Create payment record for successful one-time payments
+          logStep("Creating payment record for one-time payment");
+          const { error: paymentInsertError } = await supabaseClient
+            .from("customer_payments")
+            .insert({
+              booking_id: booking.id,
+              customer_email: booking.customer_email,
+              customer_name: booking.customer_name,
+              amount_cents: booking.total_price_cents,
+              stripe_payment_intent_id: session.payment_intent,
+              stripe_charge_id: session.charges?.data?.[0]?.id || 
+                (session.payment_intent ? 
+                  (await stripe.paymentIntents.retrieve(session.payment_intent as string)).charges.data[0]?.id 
+                  : null),
+              payment_status: 'completed',
+              payment_type: 'initial',
+              payment_method: 'card',
+              stripe_fee_cents: Math.round(booking.total_price_cents * 0.029 + 30),
+              net_amount_cents: Math.round(booking.total_price_cents * 0.971),
+              paid_at: new Date().toISOString()
+            });
+
+          if (paymentInsertError) {
+            logStep("ERROR: Failed to create payment record", { error: paymentInsertError });
+          }
+        }
       }
     } else {
       paymentStatus = 'failed';
