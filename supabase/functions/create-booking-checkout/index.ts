@@ -144,7 +144,7 @@ serve(async (req) => {
     if (isSubscription) {
       logStep("Creating setup session for subscription");
       
-      // For subscriptions, we use setup mode to save payment method
+      // For subscriptions, we use setup mode to save payment method for future charges
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         mode: "setup",
@@ -158,10 +158,13 @@ serve(async (req) => {
         }
       });
 
-      // Update booking with setup intent ID
+      // Update booking with setup intent ID and payment mode
       await supabaseClient
         .from("bookings")
-        .update({ stripe_setup_intent_id: session.setup_intent })
+        .update({ 
+          stripe_setup_intent_id: session.setup_intent,
+          payment_mode: 'subscription'
+        })
         .eq("id", booking.id);
 
       // Create a job from the booking for admin dashboard (with fallback to RPC)
@@ -207,43 +210,55 @@ serve(async (req) => {
         status: 200,
       });
     } else {
-      logStep("Creating payment intent for one-time service");
+      logStep("Creating immediate payment for one-time service");
       
-      // For one-time payments, create a payment intent but don't charge immediately
-      // We'll charge after service completion
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(bookingData.totalPrice * 100),
-        currency: "usd",
-        customer: customerId,
-        setup_future_usage: "off_session", // Allow future payments if needed
-        metadata: {
-          booking_id: booking.id,
-          service_type: bookingData.serviceType
-        }
-      });
-
-      // Create checkout session for the payment intent
+      // For one-time payments, charge immediately using payment mode
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
-        mode: "setup", // Use setup mode even for one-time to avoid immediate charge
+        mode: "payment", // Use payment mode for immediate charge
         payment_method_types: ["card"],
+        line_items: [{
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: `${bookingData.serviceType} - One Time Cleaning`,
+              description: `${bookingData.beds}BR/${bookingData.baths}BA - ${bookingData.address}, ${bookingData.city}`
+            },
+            unit_amount: Math.round(bookingData.totalPrice * 100)
+          },
+          quantity: 1
+        }],
         success_url: `${origin}/booking-success?session_id={CHECKOUT_SESSION_ID}&booking_id=${booking.id}`,
         cancel_url: `${origin}/booking-cancelled?booking_id=${booking.id}`,
         metadata: {
           booking_id: booking.id,
           service_type: bookingData.serviceType,
-          payment_intent_id: paymentIntent.id
+          payment_type: 'one-time'
         }
       });
 
-      // Update booking with payment intent ID
+      // Update booking with payment mode and session info
       await supabaseClient
         .from("bookings")
         .update({ 
-          stripe_payment_intent_id: paymentIntent.id,
-          stripe_setup_intent_id: session.setup_intent
+          payment_mode: 'one-time',
+          payment_status: 'processing'
         })
         .eq("id", booking.id);
+
+      // Create initial customer payment record
+      await supabaseClient
+        .from("customer_payments")
+        .insert({
+          booking_id: booking.id,
+          customer_email: bookingData.customerEmail,
+          customer_name: bookingData.customerName,
+          amount_cents: Math.round(bookingData.totalPrice * 100),
+          net_amount_cents: Math.round(bookingData.totalPrice * 100 * 0.971), // Estimate after Stripe fees
+          payment_status: 'pending',
+          payment_type: 'initial',
+          payment_method: 'card'
+        });
 
       // Create a job from the booking for admin dashboard (with fallback to RPC)
       const { data: jobRow, error: jobErr } = await supabaseClient
@@ -277,63 +292,15 @@ serve(async (req) => {
         console.log("[CREATE-BOOKING-CHECKOUT] Job created", jobRow?.id);
       }
 
-      logStep("Payment intent and session created", { 
-        paymentIntentId: paymentIntent.id,
+      logStep("One-time payment session created", { 
         sessionId: session.id,
         url: session.url
       });
-
-      // Send booking confirmation email
-      try {
-        logStep("Attempting to send booking confirmation email");
-        const emailPayload = {
-          bookingData: {
-            customerName: bookingData.customerName,
-            customerEmail: bookingData.customerEmail,
-            serviceType: bookingData.serviceType,
-            startDate: bookingData.startDate,
-            startTime: bookingData.startTime,
-            frequency: bookingData.frequency,
-            address: bookingData.address,
-            city: bookingData.city,
-            state: bookingData.state,
-            zipcode: bookingData.zipcode,
-            beds: bookingData.beds,
-            baths: bookingData.baths,
-            sqft: bookingData.sqft,
-            totalPrice: bookingData.totalPrice,
-            addOns: bookingData.addOns,
-            specialInstructions: bookingData.specialInstructions
-          },
-          bookingId: booking.id
-        };
-
-        const supabaseUrl = Deno.env.get("SUPABASE_URL");
-        const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-booking-confirmation`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`
-          },
-          body: JSON.stringify(emailPayload)
-        });
-
-        if (emailResponse.ok) {
-          logStep("Confirmation email sent successfully");
-        } else {
-          const errorText = await emailResponse.text();
-          logStep("WARNING: Failed to send confirmation email", { error: errorText, status: emailResponse.status });
-        }
-      } catch (emailError) {
-        logStep("WARNING: Email sending failed", { error: emailError });
-        // Don't fail the booking if email fails
-      }
       
       return new Response(JSON.stringify({ 
         url: session.url,
         booking_id: booking.id,
-        session_id: session.id,
-        payment_intent_id: paymentIntent.id
+        session_id: session.id
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,

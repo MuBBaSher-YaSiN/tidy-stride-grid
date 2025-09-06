@@ -62,6 +62,7 @@ export type Database = {
           inside_windows: boolean | null
           laundry: boolean | null
           parking_info: string | null
+          payment_mode: string | null
           payment_status: string | null
           property_address: string
           property_baths: number
@@ -98,6 +99,7 @@ export type Database = {
           inside_windows?: boolean | null
           laundry?: boolean | null
           parking_info?: string | null
+          payment_mode?: string | null
           payment_status?: string | null
           property_address: string
           property_baths: number
@@ -134,6 +136,7 @@ export type Database = {
           inside_windows?: boolean | null
           laundry?: boolean | null
           parking_info?: string | null
+          payment_mode?: string | null
           payment_status?: string | null
           property_address?: string
           property_baths?: number
@@ -193,6 +196,87 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      customer_payments: {
+        Row: {
+          amount_cents: number
+          booking_id: string | null
+          created_at: string
+          currency: string
+          customer_email: string
+          customer_name: string
+          failed_at: string | null
+          failure_reason: string | null
+          id: string
+          job_id: string | null
+          net_amount_cents: number
+          paid_at: string | null
+          payment_method: string | null
+          payment_status: string
+          payment_type: string
+          stripe_charge_id: string | null
+          stripe_fee_cents: number | null
+          stripe_payment_intent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          booking_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_email: string
+          customer_name: string
+          failed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          job_id?: string | null
+          net_amount_cents: number
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          payment_type: string
+          stripe_charge_id?: string | null
+          stripe_fee_cents?: number | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          booking_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string
+          customer_name?: string
+          failed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          job_id?: string | null
+          net_amount_cents?: number
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          payment_type?: string
+          stripe_charge_id?: string | null
+          stripe_fee_cents?: number | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_payments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customers: {
         Row: {

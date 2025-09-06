@@ -76,16 +76,42 @@ serve(async (req) => {
       if (session.mode === 'setup') {
         // For setup mode (both subscriptions and one-time with saved payment method)
         paymentStatus = 'setup_complete';
+        bookingStatus = 'confirmed';
         logStep("Payment method setup completed successfully");
       } else if (session.mode === 'payment') {
-        // For immediate payment mode (shouldn't happen with our current setup)
-        paymentStatus = 'paid';
+        // For immediate payment mode (one-time payments)
+        paymentStatus = 'completed';
+        bookingStatus = 'confirmed';
         logStep("Payment completed immediately");
+        
+        // Update customer payment record to completed
+        await supabaseClient
+          .from('customer_payments')
+          .update({
+            payment_status: 'completed',
+            stripe_charge_id: session.payment_intent ? 
+              (await stripe.paymentIntents.retrieve(session.payment_intent as string)).charges.data[0]?.id 
+              : null,
+            paid_at: new Date().toISOString()
+          })
+          .eq('booking_id', booking_id)
+          .eq('payment_type', 'initial');
       }
     } else {
       paymentStatus = 'failed';
       bookingStatus = 'cancelled';
       logStep("Payment setup failed", { sessionStatus: session.status });
+      
+      // Update customer payment record to failed if it exists
+      await supabaseClient
+        .from('customer_payments')
+        .update({
+          payment_status: 'failed',
+          failed_at: new Date().toISOString(),
+          failure_reason: `Stripe session failed: ${session.status}`
+        })
+        .eq('booking_id', booking_id)
+        .eq('payment_type', 'initial');
     }
 
     // Update booking status
