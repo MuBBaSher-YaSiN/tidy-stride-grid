@@ -113,8 +113,20 @@ const BookingFlow = () => {
     setBookingData(prev => ({ ...prev, ...updates }));
   };
 
+  const getSteps = (): BookingStep[] => {
+    const baseSteps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'addons'];
+    
+    // Skip frequency step for VR subscriptions since they already selected subscription length
+    if (bookingData.serviceType !== 'VR') {
+      baseSteps.push('frequency');
+    }
+    
+    baseSteps.push('info', 'payment');
+    return baseSteps;
+  };
+
   const goToNextStep = () => {
-    const steps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'addons', 'frequency', 'info', 'payment'];
+    const steps = getSteps();
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1]);
@@ -122,7 +134,7 @@ const BookingFlow = () => {
   };
 
   const goToPrevStep = () => {
-    const steps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'addons', 'frequency', 'info', 'payment'];
+    const steps = getSteps();
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1]);
@@ -1227,7 +1239,7 @@ const BookingFlow = () => {
     payment: 'Payment'
   };
 
-  const steps = ['property', 'service', 'schedule', 'contact', 'addons', 'frequency', 'info', 'payment'];
+  const steps = getSteps();
   const currentStepIndex = steps.indexOf(currentStep);
 
   return (
@@ -1262,7 +1274,7 @@ const BookingFlow = () => {
         {/* Navigation */}
         <div className="flex justify-between mt-8">
           <CleanNamiButton
-            variant="outline"
+            variant="secondary"
             onClick={goToPrevStep}
             disabled={currentStepIndex === 0}
             className="flex items-center space-x-2"
