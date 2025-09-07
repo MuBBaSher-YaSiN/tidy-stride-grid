@@ -71,7 +71,7 @@ const Index = () => {
         )}
       </nav>
 
-      {/* Hero Section with CleanNami Branding */}
+      {/* Hero Section - CleanNami Branding */}
       <section className="relative py-12 px-6 max-w-7xl mx-auto text-center">
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-arkhip font-bold text-primary mb-8 md:mb-12">
           CleanNami
