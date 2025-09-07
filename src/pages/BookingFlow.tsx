@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ArrowRight, Calendar, Home, User, Mail, Phone, MapPin, Plus, Clock } from "lucide-react";
-import { calculatePrice, formatCurrency, FLORIDA_CITIES, US_STATES, EARLIEST_CLEAN_DATE, type FloridaCity, type USState } from "@/lib/pricing";
+import { ArrowLeft, ArrowRight, Calendar, Home, User, Mail, Phone, MapPin, Plus, Clock, Upload } from "lucide-react";
+import { calculatePrice, formatCurrency, FLORIDA_CITIES, EARLIEST_CLEAN_DATE, type FloridaCity } from "@/lib/pricing";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -20,7 +20,6 @@ interface BookingData {
   address1: string;
   address2: string;
   city: FloridaCity | '';
-  state: USState | '';
   zipcode: string;
   beds: number;
   baths: number;
@@ -36,16 +35,21 @@ interface BookingData {
   // Schedule
   startDate: string;
   startTime: string;
+  checkoutTime?: string;
+  checkinTime?: string;
   
   // Contact
   name: string;
   email: string;
   phone: string;
+  agreeToTerms: boolean;
   
   // Add-ons
   addOns: {
     deepCleaning: boolean;
     laundry: boolean;
+    laundryLoads: number;
+    laundryLocation: 'onsite' | 'offsite' | '';
     insideFridge: boolean;
     insideWindows: boolean;
   };
@@ -55,9 +59,12 @@ interface BookingData {
   
   // Additional Info
   parking: string;
+  parkingOther: string;
   flexibility: string;
   access: string;
+  smartLockCode: string;
   additionalNotes: string;
+  checklistFile?: File;
   
   // Pricing
   priceResult?: any;
@@ -69,7 +76,6 @@ const BookingFlow = () => {
     address1: '',
     address2: '',
     city: '',
-    state: '',
     zipcode: '',
     beds: 1,
     baths: 1,
@@ -83,16 +89,21 @@ const BookingFlow = () => {
     name: '',
     email: '',
     phone: '',
+    agreeToTerms: false,
     addOns: {
       deepCleaning: false,
       laundry: false,
+      laundryLoads: 1,
+      laundryLocation: '',
       insideFridge: false,
       insideWindows: false,
     },
     frequency: 'one-time',
     parking: '',
+    parkingOther: '',
     flexibility: '',
     access: '',
+    smartLockCode: '',
     additionalNotes: ''
   });
   
@@ -131,6 +142,13 @@ const BookingFlow = () => {
     );
   };
 
+  // Calculate minimum booking date (3 days from now)
+  const getMinimumBookingDate = () => {
+    const today = new Date();
+    const minDate = new Date(today.getTime() + (3 * 24 * 60 * 60 * 1000));
+    return minDate.toISOString().split('T')[0];
+  };
+
   const handleBookingSubmit = async () => {
     setIsLoading(true);
     console.log("Booking submission started", bookingData);
@@ -158,7 +176,7 @@ const BookingFlow = () => {
       customerPhone: bookingData.phone,
       address: bookingData.address1,
       city: bookingData.city,
-      state: bookingData.state,
+      state: 'Florida',
       zipcode: bookingData.zipcode,
       beds: bookingData.beds,
       baths: bookingData.baths,
@@ -166,17 +184,21 @@ const BookingFlow = () => {
       sqft: bookingData.sqft,
       serviceType: bookingData.serviceType,
       startDate: bookingData.startDate,
-      startTime: bookingData.startTime,
+      startTime: bookingData.serviceType === 'VR' ? bookingData.checkoutTime : bookingData.startTime,
       months: bookingData.months,
       addOns: bookingData.addOns,
       frequency: bookingData.frequency,
       basePrice: priceResult.price,
       totalPrice: priceResult.price,
-      parkingInfo: bookingData.parking,
+      parkingInfo: bookingData.parking === 'other' ? bookingData.parkingOther : bookingData.parking,
       scheduleFlexibility: bookingData.flexibility,
       accessMethod: bookingData.access,
+      smartLockCode: bookingData.smartLockCode,
       specialInstructions: bookingData.additionalNotes,
-      cleaningType: bookingData.cleaningType // Add cleaningType to payload
+      cleaningType: bookingData.cleaningType,
+      checkoutTime: bookingData.checkoutTime,
+      checkinTime: bookingData.checkinTime,
+      icalUrl: bookingData.icalUrl
       };
 
       console.log('Starting booking submission...');
@@ -297,7 +319,7 @@ const BookingFlow = () => {
           <Input
             id="sqft"
             type="number"
-            value={bookingData.sqft}
+            value={bookingData.sqft === 0 ? '' : bookingData.sqft}
             onChange={(e) => updateBookingData({ sqft: parseInt(e.target.value) || 0 })}
             placeholder="Enter square footage"
             min="500"
@@ -326,21 +348,7 @@ const BookingFlow = () => {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="state">State</Label>
-            <Select value={bookingData.state} onValueChange={(value: USState) => updateBookingData({ state: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select state" />
-              </SelectTrigger>
-              <SelectContent>
-                {US_STATES.map((state) => (
-                  <SelectItem key={state} value={state}>{state}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="city">City</Label>
             <Select value={bookingData.city} onValueChange={(value: FloridaCity) => updateBookingData({ city: value })}>
@@ -402,7 +410,13 @@ const BookingFlow = () => {
           <Label>Service Type</Label>
           <RadioGroup 
             value={bookingData.serviceType} 
-            onValueChange={(value: 'Residential' | 'VR') => updateBookingData({ serviceType: value })}
+            onValueChange={(value: 'Residential' | 'VR') => {
+              updateBookingData({ 
+                serviceType: value,
+                cleaningType: value === 'VR' ? 'subscription' : '',
+                frequency: value === 'VR' ? 'weekly' : 'one-time'
+              });
+            }}
           >
             <div className="flex items-center space-x-2 p-4 border rounded-lg">
               <RadioGroupItem value="Residential" id="residential" />
@@ -418,7 +432,7 @@ const BookingFlow = () => {
               <div className="flex-1">
                 <Label htmlFor="vr" className="cursor-pointer">
                   <div className="font-medium">Vacation Rental Cleaning</div>
-                  <div className="text-sm text-muted-foreground">Automated turnover cleaning</div>
+                  <div className="text-sm text-muted-foreground">Automated turnover cleaning (subscription only)</div>
                 </Label>
               </div>
             </div>
@@ -436,42 +450,44 @@ const BookingFlow = () => {
             required
             />
             <p className="text-sm text-muted-foreground">
-              Connect your Airbnb/VRBO calendar for automatic scheduling
+              Connect your booking calendar for automatic scheduling
             </p>
           </div>
         )}
 
-        <div className="space-y-4">
-          <Label>Cleaning Option</Label>
-          <RadioGroup 
-            value={bookingData.cleaningType} 
-            onValueChange={(value: 'one-time' | 'subscription') => {
-              updateBookingData({ 
-                cleaningType: value,
-        frequency: value === 'one-time' ? 'one-time' : 'weekly'
-              });
-            }}
-          >
-            <div className="flex items-center space-x-2 p-4 border rounded-lg">
-              <RadioGroupItem value="one-time" id="one-time-cleaning" />
-              <div className="flex-1">
-                <Label htmlFor="one-time-cleaning" className="cursor-pointer">
-                  <div className="font-medium">One-Time Cleaning</div>
-                  <div className="text-sm text-muted-foreground">Single cleaning service with immediate payment</div>
-                </Label>
+        {bookingData.serviceType === 'Residential' && (
+          <div className="space-y-4">
+            <Label>Cleaning Option</Label>
+            <RadioGroup 
+              value={bookingData.cleaningType} 
+              onValueChange={(value: 'one-time' | 'subscription') => {
+                updateBookingData({ 
+                  cleaningType: value,
+          frequency: value === 'one-time' ? 'one-time' : 'weekly'
+                });
+              }}
+            >
+              <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                <RadioGroupItem value="one-time" id="one-time-cleaning" />
+                <div className="flex-1">
+                  <Label htmlFor="one-time-cleaning" className="cursor-pointer">
+                    <div className="font-medium">One-Time Cleaning</div>
+                    <div className="text-sm text-muted-foreground">Single cleaning service with immediate payment</div>
+                  </Label>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center space-x-2 p-4 border rounded-lg">
-              <RadioGroupItem value="subscription" id="subscription-cleaning" />
-              <div className="flex-1">
-                <Label htmlFor="subscription-cleaning" className="cursor-pointer">
-                  <div className="font-medium">Subscription Cleaning</div>
-                  <div className="text-sm text-muted-foreground">Recurring service with payment per completed job</div>
-                </Label>
+              <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                <RadioGroupItem value="subscription" id="subscription-cleaning" />
+                <div className="flex-1">
+                  <Label htmlFor="subscription-cleaning" className="cursor-pointer">
+                    <div className="font-medium">Subscription Cleaning</div>
+                    <div className="text-sm text-muted-foreground">Recurring service with payment per completed job</div>
+                  </Label>
+                </div>
               </div>
-            </div>
-          </RadioGroup>
-        </div>
+            </RadioGroup>
+          </div>
+        )}
 
         {bookingData.cleaningType === 'subscription' && (
           <div className="space-y-2">
@@ -506,50 +522,103 @@ const BookingFlow = () => {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="startDate">Preferred Start Date</Label>
+            <Label htmlFor="startDate">Start Date</Label>
             <Input
               id="startDate"
               type="date"
               value={bookingData.startDate}
               onChange={(e) => updateBookingData({ startDate: e.target.value })}
-              min={EARLIEST_CLEAN_DATE}
+              min={getMinimumBookingDate()}
               required
             />
             <p className="text-sm text-muted-foreground">
-              Earliest available date: {EARLIEST_CLEAN_DATE}
+              Earliest available date: {getMinimumBookingDate()}
             </p>
           </div>
 
+          {bookingData.serviceType === 'VR' ? (
+            <div className="space-y-2">
+              <Label htmlFor="checkoutTime">Checkout Time</Label>
+              <Select value={bookingData.checkoutTime || ''} onValueChange={(value) => updateBookingData({ checkoutTime: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select checkout time" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="8:00 AM">8:00 AM</SelectItem>
+                  <SelectItem value="9:00 AM">9:00 AM</SelectItem>
+                  <SelectItem value="10:00 AM">10:00 AM</SelectItem>
+                  <SelectItem value="11:00 AM">11:00 AM</SelectItem>
+                  <SelectItem value="12:00 PM">12:00 PM</SelectItem>
+                  <SelectItem value="1:00 PM">1:00 PM</SelectItem>
+                  <SelectItem value="2:00 PM">2:00 PM</SelectItem>
+                  <SelectItem value="3:00 PM">3:00 PM</SelectItem>
+                  <SelectItem value="4:00 PM">4:00 PM</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="startTime">Preferred Time</Label>
+              <Select value={bookingData.startTime} onValueChange={(value) => updateBookingData({ startTime: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select time" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="8:00 AM">8:00 AM</SelectItem>
+                  <SelectItem value="9:00 AM">9:00 AM</SelectItem>
+                  <SelectItem value="10:00 AM">10:00 AM</SelectItem>
+                  <SelectItem value="11:00 AM">11:00 AM</SelectItem>
+                  <SelectItem value="12:00 PM">12:00 PM</SelectItem>
+                  <SelectItem value="1:00 PM">1:00 PM</SelectItem>
+                  <SelectItem value="2:00 PM">2:00 PM</SelectItem>
+                  <SelectItem value="3:00 PM">3:00 PM</SelectItem>
+                  <SelectItem value="4:00 PM">4:00 PM</SelectItem>
+                  <SelectItem value="5:00 PM">5:00 PM</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
+        {bookingData.serviceType === 'VR' && (
           <div className="space-y-2">
-            <Label htmlFor="startTime">Preferred Time</Label>
-            <Select value={bookingData.startTime} onValueChange={(value) => updateBookingData({ startTime: value })}>
+            <Label htmlFor="checkinTime">Check-in Time</Label>
+            <Select value={bookingData.checkinTime || ''} onValueChange={(value) => updateBookingData({ checkinTime: value })}>
               <SelectTrigger>
-                <SelectValue placeholder="Select time" />
+                <SelectValue placeholder="Select check-in time" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="8:00 AM">8:00 AM</SelectItem>
-                <SelectItem value="9:00 AM">9:00 AM</SelectItem>
-                <SelectItem value="10:00 AM">10:00 AM</SelectItem>
-                <SelectItem value="11:00 AM">11:00 AM</SelectItem>
                 <SelectItem value="12:00 PM">12:00 PM</SelectItem>
                 <SelectItem value="1:00 PM">1:00 PM</SelectItem>
                 <SelectItem value="2:00 PM">2:00 PM</SelectItem>
                 <SelectItem value="3:00 PM">3:00 PM</SelectItem>
                 <SelectItem value="4:00 PM">4:00 PM</SelectItem>
                 <SelectItem value="5:00 PM">5:00 PM</SelectItem>
+                <SelectItem value="6:00 PM">6:00 PM</SelectItem>
+                <SelectItem value="7:00 PM">7:00 PM</SelectItem>
+                <SelectItem value="8:00 PM">8:00 PM</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </div>
+        )}
 
         <div className="p-4 bg-gradient-hero rounded-lg">
           <h4 className="font-semibold text-primary mb-2">What to Expect:</h4>
-          <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Deep cleaning on your first visit</li>
-            <li>• Professional, insured cleaners</li>
-            <li>• Recurring service based on subscription length</li>
-            <li>• First cleaning charged at booking, future cleanings charged after completion</li>
-          </ul>
+          {bookingData.serviceType === 'VR' ? (
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>• Complete turnover cleaning between guests</li>
+              <li>• Linen changes and laundry service</li>
+              <li>• Property staging and restocking</li>
+              <li>• Automated scheduling based on your calendar</li>
+            </ul>
+          ) : (
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>• Professional, insured cleaners</li>
+              <li>• Customizable cleaning checklist</li>
+              <li>• Eco-friendly products available</li>
+              <li>• Flexible scheduling based on your preferences</li>
+            </ul>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -600,9 +669,13 @@ const BookingFlow = () => {
         </div>
 
         <div className="flex items-center space-x-2">
-          <Checkbox id="terms" />
+          <Checkbox 
+            id="terms" 
+            checked={bookingData.agreeToTerms}
+            onCheckedChange={(checked) => updateBookingData({ agreeToTerms: checked as boolean })}
+          />
           <Label htmlFor="terms" className="text-sm">
-            I agree to the Terms of Service and Privacy Policy
+            I agree to the Terms of Service and Privacy Policy *
           </Label>
         </div>
       </CardContent>
@@ -619,42 +692,92 @@ const BookingFlow = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Checkbox 
-                id="deepCleaning"
-                checked={bookingData.addOns.deepCleaning}
-                onCheckedChange={(checked) => 
-                  updateBookingData({ 
-                    addOns: { ...bookingData.addOns, deepCleaning: checked as boolean }
-                  })
-                }
-              />
-              <div>
-                <Label htmlFor="deepCleaning" className="font-medium cursor-pointer">Deep Cleaning</Label>
-                <p className="text-sm text-muted-foreground">Detailed cleaning for a thorough clean</p>
+          {bookingData.serviceType !== 'VR' && (
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center space-x-3">
+                <Checkbox 
+                  id="deepCleaning"
+                  checked={bookingData.addOns.deepCleaning}
+                  onCheckedChange={(checked) => 
+                    updateBookingData({ 
+                      addOns: { ...bookingData.addOns, deepCleaning: checked as boolean }
+                    })
+                  }
+                />
+                <div>
+                  <Label htmlFor="deepCleaning" className="font-medium cursor-pointer">Deep Cleaning</Label>
+                  <p className="text-sm text-muted-foreground">Detailed cleaning for a thorough clean</p>
+                </div>
               </div>
+              <span className="font-semibold text-primary">+$30</span>
             </div>
-            <span className="font-semibold text-primary">+$30</span>
-          </div>
+          )}
 
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Checkbox 
-                id="laundry"
-                checked={bookingData.addOns.laundry}
-                onCheckedChange={(checked) => 
-                  updateBookingData({ 
-                    addOns: { ...bookingData.addOns, laundry: checked as boolean }
-                  })
-                }
-              />
-              <div>
-                <Label htmlFor="laundry" className="font-medium cursor-pointer">Laundry</Label>
-                <p className="text-sm text-muted-foreground">Wash, dry, and fold your laundry</p>
+          <div className="space-y-4 p-4 border rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Checkbox 
+                  id="laundry"
+                  checked={bookingData.addOns.laundry}
+                  onCheckedChange={(checked) => 
+                    updateBookingData({ 
+                      addOns: { ...bookingData.addOns, laundry: checked as boolean }
+                    })
+                  }
+                />
+                <div>
+                  <Label htmlFor="laundry" className="font-medium cursor-pointer">Laundry Service</Label>
+                  <p className="text-sm text-muted-foreground">Wash, dry, and fold your laundry</p>
+                </div>
               </div>
+              <span className="font-semibold text-primary">$9/load</span>
             </div>
-            <span className="font-semibold text-primary">+$9</span>
+            
+            {bookingData.addOns.laundry && (
+              <div className="space-y-4 ml-8">
+                <div className="space-y-2">
+                  <Label htmlFor="laundryLoads">Number of Loads</Label>
+                  <Select 
+                    value={bookingData.addOns.laundryLoads.toString()} 
+                    onValueChange={(value) => 
+                      updateBookingData({ 
+                        addOns: { ...bookingData.addOns, laundryLoads: parseInt(value) }
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                        <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Laundry Location</Label>
+                  <RadioGroup 
+                    value={bookingData.addOns.laundryLocation} 
+                    onValueChange={(value: 'onsite' | 'offsite') => 
+                      updateBookingData({ 
+                        addOns: { ...bookingData.addOns, laundryLocation: value }
+                      })
+                    }
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="onsite" id="onsite" />
+                      <Label htmlFor="onsite" className="cursor-pointer">On-site laundry</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="offsite" id="offsite" />
+                      <Label htmlFor="offsite" className="cursor-pointer">Off-site laundry (+$5 fee)</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -724,71 +847,85 @@ const BookingFlow = () => {
       <CardHeader>
         <CardTitle className="flex items-center text-primary">
           <Clock className="h-5 w-5 mr-2" />
-          How Often?
+          {bookingData.serviceType === 'VR' ? 'Subscription Details' : 'How Often?'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-4">
-          <RadioGroup 
-            value={bookingData.frequency} 
-            onValueChange={(value: BookingData['frequency']) => updateBookingData({ frequency: value })}
-          >
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="one-time" id="one-time" />
-                <div>
-                  <Label htmlFor="one-time" className="font-medium cursor-pointer">One Time</Label>
-                  <p className="text-sm text-muted-foreground">Single cleaning service</p>
+        {bookingData.serviceType === 'VR' ? (
+          <div className="p-4 bg-gradient-hero rounded-lg">
+            <h4 className="font-semibold text-primary mb-2">Vacation Rental Subscription</h4>
+            <p className="text-sm text-muted-foreground">
+              Your vacation rental will be cleaned automatically based on your booking calendar. 
+              We'll clean between every guest checkout and check-in according to your iCal feed.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <RadioGroup 
+              value={bookingData.frequency} 
+              onValueChange={(value: BookingData['frequency']) => updateBookingData({ frequency: value })}
+            >
+              {bookingData.cleaningType === 'one-time' ? (
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="one-time" id="one-time" />
+                    <div>
+                      <Label htmlFor="one-time" className="font-medium cursor-pointer">One Time</Label>
+                      <p className="text-sm text-muted-foreground">Single cleaning service</p>
+                    </div>
+                  </div>
+                  <span className="font-semibold text-muted-foreground">No discount</span>
                 </div>
-              </div>
-              <span className="font-semibold text-muted-foreground">No discount</span>
-            </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem value="weekly" id="weekly" />
+                      <div>
+                        <Label htmlFor="weekly" className="font-medium cursor-pointer">Every Week</Label>
+                        <p className="text-sm text-muted-foreground">Weekly cleaning service</p>
+                      </div>
+                    </div>
+                    <span className="font-semibold text-green-600">15% off</span>
+                  </div>
 
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="weekly" id="weekly" />
-                <div>
-                  <Label htmlFor="weekly" className="font-medium cursor-pointer">Every Week</Label>
-                  <p className="text-sm text-muted-foreground">Weekly cleaning service</p>
-                </div>
-              </div>
-              <span className="font-semibold text-green-600">15% off</span>
-            </div>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem value="bi-weekly" id="bi-weekly" />
+                      <div>
+                        <Label htmlFor="bi-weekly" className="font-medium cursor-pointer">Every 2 Weeks</Label>
+                        <p className="text-sm text-muted-foreground">Bi-weekly cleaning service</p>
+                      </div>
+                    </div>
+                    <span className="font-semibold text-green-600">10% off</span>
+                  </div>
 
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="bi-weekly" id="bi-weekly" />
-                <div>
-                  <Label htmlFor="bi-weekly" className="font-medium cursor-pointer">Every 2 Weeks</Label>
-                  <p className="text-sm text-muted-foreground">Bi-weekly cleaning service</p>
-                </div>
-              </div>
-              <span className="font-semibold text-green-600">10% off</span>
-            </div>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem value="tri-weekly" id="tri-weekly" />
+                      <div>
+                        <Label htmlFor="tri-weekly" className="font-medium cursor-pointer">Every 3 Weeks</Label>
+                        <p className="text-sm text-muted-foreground">Tri-weekly cleaning service</p>
+                      </div>
+                    </div>
+                    <span className="font-semibold text-green-600">5% off</span>
+                  </div>
 
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="tri-weekly" id="tri-weekly" />
-                <div>
-                  <Label htmlFor="tri-weekly" className="font-medium cursor-pointer">Every 3 Weeks</Label>
-                  <p className="text-sm text-muted-foreground">Tri-weekly cleaning service</p>
-                </div>
-              </div>
-              <span className="font-semibold text-green-600">5% off</span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="monthly" id="monthly" />
-                <div>
-                  <Label htmlFor="monthly" className="font-medium cursor-pointer">Every 4 Weeks</Label>
-                  <p className="text-sm text-muted-foreground">Monthly cleaning service</p>
-                </div>
-              </div>
-              <span className="font-semibold text-green-600">5% off</span>
-            </div>
-          </RadioGroup>
-        </div>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem value="monthly" id="monthly" />
+                      <div>
+                        <Label htmlFor="monthly" className="font-medium cursor-pointer">Every 4 Weeks</Label>
+                        <p className="text-sm text-muted-foreground">Monthly cleaning service</p>
+                      </div>
+                    </div>
+                    <span className="font-semibold text-green-600">5% off</span>
+                  </div>
+                </>
+              )}
+            </RadioGroup>
+          </div>
+        )}
 
         {/* Price Preview */}
         <div className="mt-6 p-4 bg-gradient-hero rounded-lg">
@@ -805,7 +942,7 @@ const BookingFlow = () => {
                   <p className="text-2xl font-bold text-primary">{formatCurrency(result.price * 100)}</p>
                   <p className="text-sm text-muted-foreground">per cleaning</p>
                   {result.breakdown.discount > 0 && (
-                    <p className="text-sm text-green-600 font-medium">
+                    <p className="text-sm text-green-600 mt-1">
                       You save {formatCurrency(result.breakdown.discount * 100)} per cleaning!
                     </p>
                   )}
@@ -818,7 +955,7 @@ const BookingFlow = () => {
     </Card>
   );
 
-  const renderAdditionalInfoStep = () => (
+  const renderInfoStep = () => (
     <Card className="bg-gradient-card shadow-card">
       <CardHeader>
         <CardTitle className="flex items-center text-primary">
@@ -826,197 +963,236 @@ const BookingFlow = () => {
           Additional Information
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label>Where can your cleaners park? *</Label>
-          <RadioGroup 
-            value={bookingData.parking} 
-            onValueChange={(value) => updateBookingData({ parking: value })}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="street" id="street" />
-              <Label htmlFor="street" className="cursor-pointer">Street parking</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="driveway" id="driveway" />
-              <Label htmlFor="driveway" className="cursor-pointer">Driveway</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="garage" id="garage" />
-              <Label htmlFor="garage" className="cursor-pointer">Garage</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="parking-lot" id="parking-lot" />
-              <Label htmlFor="parking-lot" className="cursor-pointer">Parking lot</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="no-parking" id="no-parking" />
-              <Label htmlFor="no-parking" className="cursor-pointer">No parking available</Label>
-            </div>
-          </RadioGroup>
-        </div>
+      <CardContent className="space-y-4">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Parking Information</Label>
+            <RadioGroup 
+              value={bookingData.parking} 
+              onValueChange={(value) => updateBookingData({ parking: value })}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="driveway" id="driveway" />
+                <Label htmlFor="driveway" className="cursor-pointer">Driveway available</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="street" id="street" />
+                <Label htmlFor="street" className="cursor-pointer">Street parking</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="garage" id="garage" />
+                <Label htmlFor="garage" className="cursor-pointer">Garage available</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="other" id="other" />
+                <Label htmlFor="other" className="cursor-pointer">Other</Label>
+              </div>
+            </RadioGroup>
+            
+            {bookingData.parking === 'other' && (
+              <div className="ml-6 space-y-2">
+                <Label htmlFor="parkingOther">Please specify parking details</Label>
+                <Input
+                  id="parkingOther"
+                  value={bookingData.parkingOther}
+                  onChange={(e) => updateBookingData({ parkingOther: e.target.value })}
+                  placeholder="Describe parking situation"
+                />
+              </div>
+            )}
+          </div>
 
-        <div className="space-y-2">
-          <Label>Is your day/time flexible? *</Label>
-          <RadioGroup 
-            value={bookingData.flexibility} 
-            onValueChange={(value) => updateBookingData({ flexibility: value })}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="exact" id="exact" />
-              <Label htmlFor="exact" className="cursor-pointer">No, I need the exact day/time</Label>
+          {bookingData.serviceType !== 'VR' && (
+            <div className="space-y-2">
+              <Label>Schedule Flexibility</Label>
+              <RadioGroup 
+                value={bookingData.flexibility} 
+                onValueChange={(value) => updateBookingData({ flexibility: value })}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="exact" id="exact" />
+                  <Label htmlFor="exact" className="cursor-pointer">Must be exact time</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="flexible" id="flexible" />
+                  <Label htmlFor="flexible" className="cursor-pointer">Flexible within 2 hours</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="anytime" id="anytime" />
+                  <Label htmlFor="anytime" className="cursor-pointer">Anytime during business hours</Label>
+                </div>
+              </RadioGroup>
             </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="flexible" id="flexible" />
-              <Label htmlFor="flexible" className="cursor-pointer">Yes, my schedule is flexible</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="somewhat" id="somewhat" />
-              <Label htmlFor="somewhat" className="cursor-pointer">Somewhat flexible (+/- 2 hours)</Label>
-            </div>
-          </RadioGroup>
-        </div>
+          )}
 
-        <div className="space-y-2">
-          <Label>How can your cleaners get inside your home? *</Label>
-          <RadioGroup 
-            value={bookingData.access} 
-            onValueChange={(value) => updateBookingData({ access: value })}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="home" id="home" />
-              <Label htmlFor="home" className="cursor-pointer">I will be home</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="doorman" id="doorman" />
-              <Label htmlFor="doorman" className="cursor-pointer">Doorman</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="lockbox" id="lockbox" />
-              <Label htmlFor="lockbox" className="cursor-pointer">Key in lockbox</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="smart-lock" id="smart-lock" />
-              <Label htmlFor="smart-lock" className="cursor-pointer">Smart lock code</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="hide-key" id="hide-key" />
-              <Label htmlFor="hide-key" className="cursor-pointer">Hide key somewhere</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="neighbor" id="neighbor" />
-              <Label htmlFor="neighbor" className="cursor-pointer">Neighbor/friend will let them in</Label>
-            </div>
-          </RadioGroup>
-        </div>
+          <div className="space-y-2">
+            <Label>Property Access</Label>
+            <RadioGroup 
+              value={bookingData.access} 
+              onValueChange={(value) => updateBookingData({ access: value })}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="key" id="key" />
+                <Label htmlFor="key" className="cursor-pointer">Hidden key</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="lockbox" id="lockbox" />
+                <Label htmlFor="lockbox" className="cursor-pointer">Lock box</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="smart_lock" id="smart_lock" />
+                <Label htmlFor="smart_lock" className="cursor-pointer">Smart lock code</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="person" id="person" />
+                <Label htmlFor="person" className="cursor-pointer">Someone will be present</Label>
+              </div>
+            </RadioGroup>
+            
+            {bookingData.access === 'smart_lock' && (
+              <div className="ml-6 space-y-2">
+                <Label htmlFor="smartLockCode">Smart Lock Code</Label>
+                <Input
+                  id="smartLockCode"
+                  value={bookingData.smartLockCode}
+                  onChange={(e) => updateBookingData({ smartLockCode: e.target.value })}
+                  placeholder="Enter door code"
+                  type="password"
+                />
+              </div>
+            )}
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="additionalNotes">Anything else your cleaners should know about?</Label>
-          <Textarea
-            id="additionalNotes"
-            value={bookingData.additionalNotes}
-            onChange={(e) => updateBookingData({ additionalNotes: e.target.value })}
-            placeholder="Please let us know about pets, special instructions, areas to focus on, or anything else that would help our cleaners do their best work..."
-            rows={4}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="checklistFile">Upload Custom Cleaning Checklist (Optional)</Label>
+            <Input
+              id="checklistFile"
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  updateBookingData({ checklistFile: file });
+                }
+              }}
+            />
+            <p className="text-sm text-muted-foreground">
+              Upload a PDF or image of your custom cleaning checklist
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="additionalNotes">Additional Notes or Special Instructions</Label>
+            <Textarea
+              id="additionalNotes"
+              value={bookingData.additionalNotes}
+              onChange={(e) => updateBookingData({ additionalNotes: e.target.value })}
+              placeholder="Any special instructions for our cleaning team..."
+              rows={4}
+            />
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 
-  const renderPaymentStep = () => {
-    const priceResult = calculateCurrentPrice();
-    
-    return (
-      <Card className="bg-gradient-card shadow-card">
-        <CardHeader>
-          <CardTitle className="text-primary">Review & Payment</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Booking Summary */}
-          <div className="p-4 bg-gradient-hero rounded-lg">
-            <h4 className="font-semibold text-primary mb-4">Booking Summary</h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Property:</span>
-                <span>{bookingData.address1}, {bookingData.city}, {bookingData.state}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Size:</span>
-                <span>{bookingData.beds} bed, {bookingData.baths} bath, {bookingData.halfBaths} half bath, {bookingData.sqft} sq ft</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Service:</span>
-                <span>{bookingData.serviceType} ({bookingData.months} months)</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Schedule:</span>
-                <span>{bookingData.startDate} at {bookingData.startTime}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Frequency:</span>
-                <span>{bookingData.frequency.replace('-', ' ')}</span>
-              </div>
+  const renderPaymentStep = () => (
+    <Card className="bg-gradient-card shadow-card">
+      <CardHeader>
+        <CardTitle className="text-primary">Review & Pay</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-primary">Booking Summary</h3>
+          
+          <div className="p-4 border rounded-lg space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Service Type:</span>
+              <span>{bookingData.serviceType === 'VR' ? 'Vacation Rental' : 'Residential'}</span>
             </div>
-          </div>
-
-          {/* Pricing */}
-          <div className="p-4 bg-secondary/20 rounded-lg">
-            <h4 className="font-semibold text-primary mb-4">Pricing</h4>
-            {priceResult.isCustomQuote ? (
-              <div className="text-center">
-                <p className="text-lg font-semibold text-primary">Custom Quote Required</p>
-                <p className="text-sm text-muted-foreground">We'll contact you with a custom quote</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Base Price:</span>
-                  <span>{formatCurrency(priceResult.breakdown.basePrice * 100)}</span>
-                </div>
-                {priceResult.breakdown.sqftSurcharge > 0 && (
-                  <div className="flex justify-between">
-                    <span>Size Surcharge:</span>
-                    <span>{formatCurrency(priceResult.breakdown.sqftSurcharge * 100)}</span>
-                  </div>
-                )}
-                {priceResult.breakdown.addOnsPrice > 0 && (
-                  <div className="flex justify-between">
-                    <span>Add-ons:</span>
-                    <span>{formatCurrency(priceResult.breakdown.addOnsPrice * 100)}</span>
-                  </div>
-                )}
-                {priceResult.breakdown.discount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Frequency Discount:</span>
-                    <span>-{formatCurrency(priceResult.breakdown.discount * 100)}</span>
-                  </div>
-                )}
-                <hr className="my-2" />
-                <div className="flex justify-between font-semibold text-lg">
-                  <span>Total per cleaning:</span>
-                  <span className="text-primary">{formatCurrency(priceResult.price * 100)}</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  First cleaning charged today, future cleanings charged after completion
-                </p>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Property:</span>
+              <span>{bookingData.beds} bed, {bookingData.baths} bath, {bookingData.sqft} sq ft</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Address:</span>
+              <span>{bookingData.address1}, {bookingData.city}</span>
+            </div>
+            {bookingData.cleaningType === 'subscription' && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Subscription:</span>
+                <span>{bookingData.months} months</span>
               </div>
             )}
           </div>
 
-          <CleanNamiButton 
-            variant="hero" 
-            size="lg" 
-            className="w-full"
-            onClick={handleBookingSubmit}
-            disabled={isLoading}
-          >
-            {isLoading ? "Processing..." : priceResult.isCustomQuote ? "Request Custom Quote" : `Pay ${formatCurrency(priceResult.price * 100)} & Book`}
-          </CleanNamiButton>
-        </CardContent>
-      </Card>
-    );
-  };
+          {/* Price Breakdown */}
+          <div className="p-4 bg-gradient-hero rounded-lg">
+            <h4 className="font-semibold text-primary mb-3">Price Breakdown</h4>
+            {(() => {
+              const result = calculateCurrentPrice();
+              if (result.isCustomQuote) {
+                return (
+                  <div className="text-center">
+                    <p className="text-lg font-semibold text-primary">Custom Quote Required</p>
+                    <p className="text-sm text-muted-foreground">We'll contact you within 24 hours</p>
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Base Price:</span>
+                    <span>{formatCurrency(result.breakdown.basePrice * 100)}</span>
+                  </div>
+                  {result.breakdown.sqftSurcharge > 0 && (
+                    <div className="flex justify-between">
+                      <span>Size Surcharge:</span>
+                      <span>{formatCurrency(result.breakdown.sqftSurcharge * 100)}</span>
+                    </div>
+                  )}
+                  {result.breakdown.addOnsPrice > 0 && (
+                    <div className="flex justify-between">
+                      <span>Add-ons:</span>
+                      <span>{formatCurrency(result.breakdown.addOnsPrice * 100)}</span>
+                    </div>
+                  )}
+                  {result.breakdown.discount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount:</span>
+                      <span>-{formatCurrency(result.breakdown.discount * 100)}</span>
+                    </div>
+                  )}
+                  <hr className="my-2" />
+                  <div className="flex justify-between text-lg font-bold text-primary">
+                    <span>Total per cleaning:</span>
+                    <span>{formatCurrency(result.price * 100)}</span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
+        <CleanNamiButton 
+          variant="hero" 
+          size="xl" 
+          className="w-full" 
+          onClick={handleBookingSubmit}
+          disabled={isLoading || !bookingData.agreeToTerms}
+        >
+          {isLoading ? 'Processing...' : 'Pay & Book'}
+        </CleanNamiButton>
+        
+        {!bookingData.agreeToTerms && (
+          <p className="text-sm text-destructive text-center">
+            Please agree to the Terms of Service to continue
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   const renderCurrentStep = () => {
     switch (currentStep) {
@@ -1026,7 +1202,7 @@ const BookingFlow = () => {
       case 'contact': return renderContactStep();
       case 'addons': return renderAddOnsStep();
       case 'frequency': return renderFrequencyStep();
-      case 'info': return renderAdditionalInfoStep();
+      case 'info': return renderInfoStep();
       case 'payment': return renderPaymentStep();
       default: return renderPropertyStep();
     }
@@ -1034,99 +1210,97 @@ const BookingFlow = () => {
 
   const canProceed = () => {
     switch (currentStep) {
-      case 'property':
-        return bookingData.address1 && bookingData.city && bookingData.state && bookingData.zipcode && bookingData.beds && bookingData.baths && bookingData.sqft;
-      case 'service':
-        return bookingData.serviceType && bookingData.months;
-      case 'schedule':
-        return bookingData.startDate && bookingData.startTime;
-      case 'contact':
+      case 'property': 
+        return bookingData.address1 && bookingData.city && bookingData.zipcode && 
+               bookingData.beds && bookingData.baths && bookingData.sqft;
+      case 'service': 
+        return bookingData.serviceType && 
+               (bookingData.serviceType === 'VR' ? bookingData.icalUrl : bookingData.cleaningType);
+      case 'schedule': 
+        return bookingData.startDate && 
+               (bookingData.serviceType === 'VR' ? 
+                 (bookingData.checkoutTime && bookingData.checkinTime) : 
+                 bookingData.startTime);
+      case 'contact': 
         return bookingData.name && bookingData.email && bookingData.phone;
-      case 'addons':
-        return true; // Add-ons are optional
-      case 'frequency':
-        return bookingData.frequency;
-      case 'info':
-        return bookingData.parking && bookingData.flexibility && bookingData.access;
-      case 'payment':
+      case 'addons': 
+        return true; // Optional step
+      case 'frequency': 
+        return true; // Always valid
+      case 'info': 
+        return bookingData.parking && bookingData.access;
+      default: 
         return true;
-      default:
-        return false;
     }
   };
 
-  const steps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'addons', 'frequency', 'info', 'payment'];
-  const stepNames = ['Property', 'Service', 'Schedule', 'Contact', 'Add-ons', 'Frequency', 'Info', 'Payment'];
+  const stepTitles = {
+    property: 'Property Details',
+    service: 'Service Type',
+    schedule: 'Scheduling',
+    contact: 'Contact Info',
+    addons: 'Add-ons',
+    frequency: bookingData.serviceType === 'VR' ? 'Subscription' : 'Frequency',
+    info: 'Additional Info',
+    payment: 'Payment'
+  };
+
+  const steps = ['property', 'service', 'schedule', 'contact', 'addons', 'frequency', 'info', 'payment'];
+  const currentStepIndex = steps.indexOf(currentStep);
 
   return (
     <div className="min-h-screen bg-gradient-hero">
       {/* Header */}
-      <div className="bg-card shadow-card border-b">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center text-primary hover:text-primary/80">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Link>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-primary">Book Your Cleaning</h1>
-              <p className="text-sm text-muted-foreground">Step {steps.indexOf(currentStep) + 1} of {steps.length}</p>
-            </div>
-            <div className="w-20"></div>
+      <div className="p-6 max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <Link to="/" className="flex items-center space-x-2 text-primary hover:text-primary/80">
+            <ArrowLeft className="h-5 w-5" />
+            <span>Back to Home</span>
+          </Link>
+          <h1 className="text-3xl font-bold text-primary">Book Your Cleaning</h1>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">Step {currentStepIndex + 1} of {steps.length}</span>
+            <span className="text-sm font-medium text-primary">{stepTitles[currentStep]}</span>
+          </div>
+          <div className="w-full bg-muted rounded-full h-2">
+            <div 
+              className="bg-primary h-2 rounded-full transition-all duration-300"
+              style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
+            />
           </div>
         </div>
-      </div>
 
-      {/* Progress Bar */}
-      <div className="max-w-4xl mx-auto px-6 py-4">
-        <div className="flex justify-between mb-2">
-          {steps.map((step, index) => (
-            <div key={step} className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                steps.indexOf(currentStep) >= index
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
-              }`}>
-                {index + 1}
-              </div>
-              {index < steps.length - 1 && (
-                <div className={`w-12 h-1 mx-2 rounded ${
-                  steps.indexOf(currentStep) > index
-                    ? 'bg-primary'
-                    : 'bg-muted'
-                }`} />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-2xl mx-auto px-6 pb-6">
+        {/* Current Step */}
         {renderCurrentStep()}
-        
-        {/* Navigation Buttons */}
-        {currentStep !== 'payment' && (
-          <div className="flex justify-between mt-6">
-            <CleanNamiButton 
-              variant="ghost" 
-              onClick={goToPrevStep}
-              disabled={currentStep === 'property'}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Previous
-            </CleanNamiButton>
-            
-            <CleanNamiButton 
-              variant="hero" 
+
+        {/* Navigation */}
+        <div className="flex justify-between mt-8">
+          <CleanNamiButton
+            variant="outline"
+            onClick={goToPrevStep}
+            disabled={currentStepIndex === 0}
+            className="flex items-center space-x-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Previous</span>
+          </CleanNamiButton>
+
+          {currentStep !== 'payment' && (
+            <CleanNamiButton
+              variant="ocean"
               onClick={goToNextStep}
               disabled={!canProceed()}
+              className="flex items-center space-x-2"
             >
-              Next
-              <ArrowRight className="h-4 w-4 ml-2" />
+              <span>Next</span>
+              <ArrowRight className="h-4 w-4" />
             </CleanNamiButton>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

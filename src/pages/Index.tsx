@@ -55,16 +55,23 @@ const Index = () => {
         )}
       </nav>
 
+      {/* Hero Section with CleanNami Branding */}
+      <section className="relative py-12 px-6 max-w-7xl mx-auto text-center">
+        <h1 className="text-7xl md:text-8xl font-arkhip font-bold text-primary mb-12">
+          CleanNami
+        </h1>
+      </section>
+
       {/* Hero Section with Image */}
-      <section className="relative py-20 px-6 max-w-7xl mx-auto">
+      <section className="relative py-8 px-6 max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="text-center lg:text-left">
-            <h1 className="text-5xl md:text-6xl font-bold text-primary mb-6">
+            <h2 className="text-4xl md:text-5xl font-bold text-primary mb-6">
               Effortless Vacation Rental Turnovers.
               <span className="block bg-gradient-ocean bg-clip-text text-transparent">
                 Five-Star Cleans, Every Time.
               </span>
-            </h1>
+            </h2>
             <p className="text-xl text-muted-foreground mb-8">
               CleanNami handles every detail of your vacation rental turnover — from linens and laundry to staging and hot tub care — so you can relax, impress guests, and always get five-star reviews.
             </p>
@@ -180,7 +187,7 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground mb-4">
-                Automated turnover cleaning synced with your Airbnb calendar.
+                Automated turnover cleaning synced with your booking calendar.
               </p>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>• iCal integration for automatic scheduling</li>
@@ -202,10 +209,10 @@ const Index = () => {
                 from 1-6 months.
               </p>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Deep cleaning on first visit</li>
                 <li>• Recurring maintenance cleaning</li>
                 <li>• Eco-friendly products available</li>
                 <li>• Customizable cleaning checklist</li>
+                <li>• Flexible scheduling options</li>
               </ul>
             </CardContent>
           </Card>

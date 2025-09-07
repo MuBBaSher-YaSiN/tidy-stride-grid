@@ -9,6 +9,8 @@ export interface PricingInput {
   addOns: {
     deepCleaning: boolean;
     laundry: boolean;
+    laundryLoads?: number;
+    laundryLocation?: 'onsite' | 'offsite' | '';
     insideFridge: boolean;
     insideWindows: boolean;
   };
@@ -62,88 +64,36 @@ export function calculatePrice(
     };
   }
 
-  let price = 0;
-  
-  // New pricing rules - Base Price: $100 (1 bedroom, 1 bathroom, under 1000 sq ft)
-  // Add $30 per additional bedroom, $20 per additional bathroom
-  
-  // Base pricing grid as specified
-  if (beds === 1) {
-    switch (baths) {
-      case 1: price = 100; break;
-      case 2: price = 120; break;
-      case 3: price = 140; break;
-      case 4: price = 160; break;
-      case 5: price = 180; break;
-      default: price = 100 + (baths - 1) * 20; break;
-    }
-  } else if (beds === 2) {
-    switch (baths) {
-      case 1: price = 130; break;
-      case 2: price = 150; break;
-      case 3: price = 170; break;
-      case 4: price = 190; break;
-      case 5: price = 210; break;
-      default: price = 130 + (baths - 1) * 20; break;
-    }
-  } else if (beds === 3) {
-    switch (baths) {
-      case 1: price = 160; break;
-      case 2: price = 180; break;
-      case 3: price = 200; break;
-      case 4: price = 220; break;
-      case 5: price = 240; break;
-      default: price = 160 + (baths - 1) * 20; break;
-    }
-  } else if (beds === 4) {
-    switch (baths) {
-      case 1: price = 190; break;
-      case 2: price = 210; break;
-      case 3: price = 230; break;
-      case 4: price = 250; break;
-      case 5: price = 270; break;
-      default: price = 190 + (baths - 1) * 20; break;
-    }
-  } else if (beds === 5) {
-    switch (baths) {
-      case 1: price = 220; break;
-      case 2: price = 240; break;
-      case 3: price = 260; break;
-      case 4: price = 280; break;
-      case 5: price = 300; break;
-      default: price = 220 + (baths - 1) * 20; break;
-    }
-  } else {
-    // For 6+ bedrooms: Base $100 + (beds-1)*$30 + (baths-1)*$20
-    price = 100 + (beds - 1) * 30 + (baths - 1) * 20;
-  }
+  // Updated pricing formula from user requirements
+  // Base Price: $100 (for 1 bedroom, 1 bathroom, under 1000 sq ft)
+  // Extra Bedrooms: +$30 each, Extra Bathrooms: +$20 each
+  let price = 100 + (beds - 1) * 30 + (baths - 1) * 20;
 
-  // Add half bathroom cost (assume $10 per half bath based on pattern)
+  // Add half bathroom cost (assume $10 per half bath)
   price += halfBaths * 10;
 
-  // Square footage surcharge - updated ranges
+  // Square footage surcharge - +$25 for every 500 sq ft above 1000 sq ft
   let sqftSurcharge = 0;
-  if (sqft >= 1000 && sqft < 1500) {
-    sqftSurcharge = 25;
-  } else if (sqft >= 1500 && sqft < 2000) {
-    sqftSurcharge = 50;
-  } else if (sqft >= 2000 && sqft < 2500) {
-    sqftSurcharge = 75;
-  } else if (sqft >= 2500 && sqft < 3000) {
-    sqftSurcharge = 100;
+  if (sqft >= 1000) {
+    const extraSqft = sqft - 1000;
+    const surcharge500Blocks = Math.ceil(extraSqft / 500);
+    sqftSurcharge = surcharge500Blocks * 25;
   }
 
-  // Add-ons pricing
+  // Add-ons pricing (updated with new laundry logic)
   let addOnsPrice = 0;
   if (addOns.deepCleaning) addOnsPrice += 30;
-  if (addOns.laundry) addOnsPrice += 9;
+  if (addOns.laundry) {
+    addOnsPrice += (addOns.laundryLoads || 1) * 9;
+    if (addOns.laundryLocation === 'offsite') addOnsPrice += 5;
+  }
   if (addOns.insideFridge) addOnsPrice += 15;
   if (addOns.insideWindows) addOnsPrice += 10;
 
   const basePrice = price;
   const subtotal = price + sqftSurcharge + addOnsPrice;
 
-  // Frequency discounts
+  // Frequency discounts (only for residential subscriptions, not VR)
   let discount = 0;
   let discountPercent = 0;
   switch (frequency) {
