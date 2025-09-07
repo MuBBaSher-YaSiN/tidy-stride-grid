@@ -17,8 +17,8 @@ const Index = () => {
       {/* Navigation */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
         <div className="flex items-center space-x-2">
-          <Sparkles className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl font-bold text-primary">CleanNami</h1>
+          {/* <Sparkles className="h-8 w-8 text-primary" /> */}
+          {/* <h1 className="text-2xl font-bold text-primary">CleanNami</h1> */}
           <img src={logo} alt="logo" className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-transparent" />
         </div>
        {/* Desktop Links */}
