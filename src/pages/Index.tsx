@@ -21,8 +21,17 @@ const Index = () => {
           {/* <h1 className="text-2xl font-bold text-primary">CleanNami</h1> */}
           <img src={logo} alt="logo" className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-transparent" />
         </div>
-       {/* Desktop Links */}
-        <div className="hidden sm:flex space-x-4">
+        {/* Desktop Links */}
+        <div className="hidden lg:flex space-x-4 items-center">
+          <a href="https://ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors">
+            Ceenami Music
+          </a>
+          <a href="https://ceenamihaus.ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors">
+            Ceenami Haus
+          </a>
+          <a href="https://shop.ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors">
+            Shop
+          </a>
           <Link to="/contractor">
             <CleanNamiButton variant="ghost">Contractor Login</CleanNamiButton>
           </Link>
@@ -33,14 +42,23 @@ const Index = () => {
         
         {/* Mobile Menu Button */}
         <button
-          className="sm:hidden p-2"
+          className="lg:hidden p-2"
           onClick={() => setMenuOpen(!menuOpen)}
         >
           {menuOpen ? <X className="h-6 w-6 text-primary" /> : <Menu className="h-6 w-6 text-primary" />}
         </button>
          {/* Mobile Dropdown */}
         {menuOpen && (
-          <div className="absolute right-6 top-16 bg-white rounded-lg shadow-md flex flex-col space-y-2 p-4 sm:hidden z-50">
+          <div className="absolute right-6 top-16 bg-white rounded-lg shadow-md flex flex-col space-y-2 p-4 lg:hidden z-50 min-w-48">
+            <a href="https://ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors p-2 text-center">
+              Ceenami Music
+            </a>
+            <a href="https://ceenamihaus.ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors p-2 text-center">
+              Ceenami Haus
+            </a>
+            <a href="https://shop.ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors p-2 text-center">
+              Shop
+            </a>
             <Link to="/contractor" onClick={() => setMenuOpen(false)}>
               <CleanNamiButton variant="ghost" className="w-full">
                 Contractor Login

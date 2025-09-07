@@ -42,7 +42,6 @@ interface BookingData {
   name: string;
   email: string;
   phone: string;
-  agreeToTerms: boolean;
   
   // Add-ons
   addOns: {
@@ -89,7 +88,6 @@ const BookingFlow = () => {
     name: '',
     email: '',
     phone: '',
-    agreeToTerms: false,
     addOns: {
       deepCleaning: false,
       laundry: false,
@@ -668,16 +666,6 @@ const BookingFlow = () => {
           />
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Checkbox 
-            id="terms" 
-            checked={bookingData.agreeToTerms}
-            onCheckedChange={(checked) => updateBookingData({ agreeToTerms: checked as boolean })}
-          />
-          <Label htmlFor="terms" className="text-sm">
-            I agree to the Terms of Service and Privacy Policy *
-          </Label>
-        </div>
       </CardContent>
     </Card>
   );
@@ -1180,16 +1168,10 @@ const BookingFlow = () => {
           size="xl" 
           className="w-full" 
           onClick={handleBookingSubmit}
-          disabled={isLoading || !bookingData.agreeToTerms}
+          disabled={isLoading}
         >
           {isLoading ? 'Processing...' : 'Pay & Book'}
         </CleanNamiButton>
-        
-        {!bookingData.agreeToTerms && (
-          <p className="text-sm text-destructive text-center">
-            Please agree to the Terms of Service to continue
-          </p>
-        )}
       </CardContent>
     </Card>
   );
