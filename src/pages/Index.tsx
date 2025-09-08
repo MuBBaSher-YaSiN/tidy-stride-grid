@@ -16,8 +16,50 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-hero">
       {/* Navigation */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
-        <div className="flex items-center space-x-2">
-          <img src={logo} alt="logo" className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-transparent" />
+          <div className="flex flex-row items-center justify-center gap-4 sm:gap-6">
+         <div className="relative inline-flex items-center gap-2">
+  {/* Sparkle left */}
+  <span className="absolute -left-6 -top-2 hidden sm:block animate-float">
+    <Sparkles className="h-6 w-6 text-primary drop-shadow-[0_0_8px_theme(colors.primary.DEFAULT)]" />
+  </span>
+
+  <h1
+    className="
+      relative select-none
+      text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl
+      font-arkhip font-extrabold tracking-tight leading-none
+      bg-gradient-ocean bg-clip-text text-transparent
+      [background-size:200%_100%] animate-ocean
+      drop-shadow-[0_6px_24px_rgba(14,165,233,0.35)]
+      hover:scale-[1.01] transition-transform duration-500
+    "
+    title="CleanNami"
+  >
+    CleanNami
+
+    {/* Shine sweep */}
+    <span
+      className="
+        pointer-events-none absolute inset-0
+        [mask-image:linear-gradient(115deg,transparent_30%,rgba(0,0,0,0.9)_50%,transparent_70%)]
+        bg-white/50
+        -translate-x-full animate-shine
+        rounded
+      "
+    />
+  </h1>
+
+  {/* Sparkle right */}
+  <span className="absolute -right-7 -bottom-2 hidden sm:block animate-float-delayed">
+    <Sparkles className="h-5 w-5 text-primary drop-shadow-[0_0_8px_theme(colors.accent.DEFAULT)]" />
+  </span>
+</div>
+
+              <img 
+            src={logo} 
+            alt="CleanNami Logo" 
+            className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32" 
+          />
         </div>
         {/* Desktop Links */}
         <div className="hidden lg:flex space-x-4 items-center">
@@ -72,7 +114,7 @@ const Index = () => {
       </nav>
 
       {/* Hero Section - CleanNami Branding */}
-      <section className="relative py-8 sm:py-12 px-6 max-w-7xl mx-auto text-center">
+      {/* <section className="relative py-8 sm:py-12 px-6 max-w-7xl mx-auto text-center">
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
           <img 
             src={logo} 
@@ -83,7 +125,7 @@ const Index = () => {
             CleanNami
           </h1>
         </div>
-      </section>
+      </section> */}
 
       {/* Hero Section with Image */}
       <section className="relative py-8 px-6 max-w-7xl mx-auto">
