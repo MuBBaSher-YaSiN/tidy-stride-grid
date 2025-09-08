@@ -41,13 +41,23 @@ export const US_STATES = [
 
 export type USState = typeof US_STATES[number];
 
+// Pricing matrix based on bedrooms x bathrooms
+const PRICING_MATRIX: Record<number, Record<number, number>> = {
+  1: { 1: 105, 2: 125, 3: 145, 4: 165, 5: 185 },
+  2: { 1: 135, 2: 155, 3: 175, 4: 195, 5: 215 },
+  3: { 1: 165, 2: 185, 3: 205, 4: 225, 5: 245 },
+  4: { 1: 195, 2: 215, 3: 235, 4: 255, 5: 275 },
+  5: { 1: 225, 2: 245, 3: 265, 4: 285, 5: 305 },
+};
+
 export function calculatePrice(
   beds: number, 
   baths: number, 
   halfBaths: number = 0,
   sqft: number, 
   addOns: PricingInput['addOns'] = { deepCleaning: false, laundry: false, insideFridge: false, insideWindows: false },
-  frequency: PricingInput['frequency'] = 'one-time'
+  frequency: PricingInput['frequency'] = 'one-time',
+  serviceType: string = 'residential'
 ): PricingResult {
   // Handle custom quote case
   if (sqft >= 3000) {
@@ -64,54 +74,68 @@ export function calculatePrice(
     };
   }
 
-  // Updated pricing formula from user requirements
-  // Base Price: $100 (for 1 bedroom, 1 bathroom, under 1000 sq ft)
-  // Extra Bedrooms: +$30 each, Extra Bathrooms: +$20 each
-  let price = 100 + (beds - 1) * 30 + (baths - 1) * 20;
+  // Get base price from matrix (cap bedrooms and bathrooms at 5)
+  const matrixBeds = Math.min(Math.max(beds, 1), 5);
+  const matrixBaths = Math.min(Math.max(baths, 1), 5);
+  let basePrice = PRICING_MATRIX[matrixBeds]?.[matrixBaths] || 305;
 
-  // Add half bathroom cost (assume $10 per half bath)
-  price += halfBaths * 10;
+  // Add half bathroom cost ($10 per half bath)
+  basePrice += halfBaths * 10;
 
-  // Square footage surcharge - +$25 for every 500 sq ft above 1000 sq ft
+  // Square footage surcharge
   let sqftSurcharge = 0;
-  if (sqft >= 1000) {
-    const extraSqft = sqft - 1000;
-    const surcharge500Blocks = Math.ceil(extraSqft / 500);
-    sqftSurcharge = surcharge500Blocks * 25;
+  if (sqft >= 1000 && sqft < 1500) {
+    sqftSurcharge = 25;
+  } else if (sqft >= 1500 && sqft < 2000) {
+    sqftSurcharge = 50;
+  } else if (sqft >= 2000 && sqft < 2500) {
+    sqftSurcharge = 75;
+  } else if (sqft >= 2500 && sqft < 3000) {
+    sqftSurcharge = 100;
   }
 
-  // Add-ons pricing (updated with new laundry logic)
+  // Add-ons pricing
   let addOnsPrice = 0;
   if (addOns.deepCleaning) addOnsPrice += 30;
+  
+  // New laundry pricing structure
   if (addOns.laundry) {
-    addOnsPrice += (addOns.laundryLoads || 1) * 9;
-    if (addOns.laundryLocation === 'offsite') addOnsPrice += 5;
+    const loads = addOns.laundryLoads || 1;
+    if (addOns.laundryLocation === 'offsite') {
+      addOnsPrice += 20 + (loads * 9); // $20 base + $9 per load
+    } else {
+      addOnsPrice += loads * 9; // $9 per load for in-unit
+    }
   }
+  
   if (addOns.insideFridge) addOnsPrice += 15;
   if (addOns.insideWindows) addOnsPrice += 10;
 
-  const basePrice = price;
-  const subtotal = price + sqftSurcharge + addOnsPrice;
+  const subtotal = basePrice + sqftSurcharge + addOnsPrice;
 
-  // Frequency discounts (only for residential subscriptions, not VR)
+  // Frequency discounts (ONLY for residential subscriptions, NOT for VR)
   let discount = 0;
   let discountPercent = 0;
-  switch (frequency) {
-    case 'weekly':
-      discountPercent = 0.15; // 15% off
-      break;
-    case 'bi-weekly':
-      discountPercent = 0.10; // 10% off
-      break;
-    case 'tri-weekly':
-      discountPercent = 0.05; // 5% off
-      break;
-    case 'monthly':
-      discountPercent = 0.05; // 5% off
-      break;
-    default:
-      discountPercent = 0; // No discount for one-time
+  
+  if (serviceType === 'residential') {
+    switch (frequency) {
+      case 'weekly':
+        discountPercent = 0.15; // 15% off
+        break;
+      case 'bi-weekly':
+        discountPercent = 0.10; // 10% off
+        break;
+      case 'tri-weekly':
+        discountPercent = 0.05; // 5% off
+        break;
+      case 'monthly':
+        discountPercent = 0.05; // 5% off
+        break;
+      default:
+        discountPercent = 0; // No discount for one-time
+    }
   }
+  // No discounts for vacation rental (VR) services
   
   discount = Math.round(subtotal * discountPercent);
   const finalPrice = subtotal - discount;

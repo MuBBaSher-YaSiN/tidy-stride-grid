@@ -62,8 +62,10 @@ interface BookingData {
   flexibility: string;
   access: string;
   smartLockCode: string;
+  accessCode: string;
   additionalNotes: string;
   checklistFile?: File;
+  checklistOption: string;
   
   // Pricing
   priceResult?: any;
@@ -102,7 +104,9 @@ const BookingFlow = () => {
     flexibility: '',
     access: '',
     smartLockCode: '',
-    additionalNotes: ''
+    accessCode: '',
+    additionalNotes: '',
+    checklistOption: '', // 'custom' or 'basic'
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -148,7 +152,8 @@ const BookingFlow = () => {
       bookingData.halfBaths,
       bookingData.sqft, 
       bookingData.addOns,
-      bookingData.frequency
+      bookingData.frequency,
+      bookingData.serviceType
     );
   };
 
@@ -1049,6 +1054,21 @@ const BookingFlow = () => {
               </div>
             </RadioGroup>
             
+            {(bookingData.access === 'key' || bookingData.access === 'lockbox') && (
+              <div className="ml-6 space-y-2">
+                <Label htmlFor="accessCode">
+                  {bookingData.access === 'lockbox' ? 'Lock Box Code' : 'Hidden Key Location'}
+                </Label>
+                <Input
+                  id="accessCode"
+                  value={bookingData.accessCode}
+                  onChange={(e) => updateBookingData({ accessCode: e.target.value })}
+                  placeholder={bookingData.access === 'lockbox' ? 'Enter lock box code' : 'Describe where the key is hidden'}
+                  type={bookingData.access === 'lockbox' ? 'password' : 'text'}
+                />
+              </div>
+            )}
+            
             {bookingData.access === 'smart_lock' && (
               <div className="ml-6 space-y-2">
                 <Label htmlFor="smartLockCode">Smart Lock Code</Label>
@@ -1063,22 +1083,51 @@ const BookingFlow = () => {
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="checklistFile">Upload Custom Cleaning Checklist (Optional)</Label>
-            <Input
-              id="checklistFile"
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  updateBookingData({ checklistFile: file });
-                }
-              }}
-            />
-            <p className="text-sm text-muted-foreground">
-              Upload a PDF or image of your custom cleaning checklist
-            </p>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Cleaning Checklist <span className="text-red-500">*</span></Label>
+              <RadioGroup 
+                value={bookingData.checklistOption} 
+                onValueChange={(value) => updateBookingData({ checklistOption: value })}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="basic" id="basic" />
+                  <Label htmlFor="basic" className="cursor-pointer">Use CleanNami Basic Checklist</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="custom" id="custom" />
+                  <Label htmlFor="custom" className="cursor-pointer">Upload My Custom Checklist</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {bookingData.checklistOption === 'custom' && (
+              <div className="ml-6 space-y-2">
+                <Label htmlFor="checklistFile">Upload Custom Cleaning Checklist</Label>
+                <Input
+                  id="checklistFile"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      updateBookingData({ checklistFile: file });
+                    }
+                  }}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Upload a PDF or image of your custom cleaning checklist
+                </p>
+              </div>
+            )}
+
+            {bookingData.checklistOption === 'basic' && (
+              <div className="ml-6 p-3 bg-gradient-hero rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  We'll use our comprehensive CleanNami checklist that covers all standard cleaning tasks including bathrooms, kitchen, bedrooms, and common areas.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -1222,7 +1271,12 @@ const BookingFlow = () => {
       case 'frequency': 
         return true; // Always valid
       case 'info': 
-        return bookingData.parking && bookingData.access;
+        const hasRequiredFields = bookingData.parking && bookingData.access && bookingData.checklistOption;
+        const hasAccessCode = (bookingData.access === 'key' || bookingData.access === 'lockbox') ? 
+          bookingData.accessCode : true;
+        const hasSmartLockCode = bookingData.access === 'smart_lock' ? 
+          bookingData.smartLockCode : true;
+        return hasRequiredFields && hasAccessCode && hasSmartLockCode;
       default: 
         return true;
     }

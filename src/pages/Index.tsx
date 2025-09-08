@@ -72,10 +72,17 @@ const Index = () => {
       </nav>
 
       {/* Hero Section - CleanNami Branding */}
-      <section className="relative py-12 px-6 max-w-7xl mx-auto text-center">
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-arkhip font-bold text-primary mb-8 md:mb-12">
-          CleanNami
-        </h1>
+      <section className="relative py-8 sm:py-12 px-6 max-w-7xl mx-auto text-center">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+          <img 
+            src={logo} 
+            alt="CleanNami Logo" 
+            className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32" 
+          />
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-arkhip font-bold text-primary leading-tight">
+            CleanNami
+          </h1>
+        </div>
       </section>
 
       {/* Hero Section with Image */}

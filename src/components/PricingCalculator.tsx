@@ -16,7 +16,7 @@ export function PricingCalculator({ onPriceChange }: PricingCalculatorProps) {
   const [pricingResult, setPricingResult] = useState<PricingResult | null>(null);
 
   useEffect(() => {
-    const result = calculatePrice(beds, baths, 0, sqft); // 0 half baths, default add-ons and frequency
+    const result = calculatePrice(beds, baths, 0, sqft, { deepCleaning: false, laundry: false, insideFridge: false, insideWindows: false }, 'one-time', 'residential'); // Default to residential for pricing calculator
     setPricingResult(result);
     onPriceChange?.(result);
   }, [beds, baths, sqft, onPriceChange]);
