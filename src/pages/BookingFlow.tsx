@@ -163,11 +163,9 @@ const BookingFlow = () => {
     );
   };
 
-  // Calculate minimum booking date (3 days from now)
+  // Calculate minimum booking date (September 23rd, 2025)
   const getMinimumBookingDate = () => {
-    const today = new Date();
-    const minDate = new Date(today.getTime() + (3 * 24 * 60 * 60 * 1000));
-    return minDate.toISOString().split('T')[0];
+    return EARLIEST_CLEAN_DATE;
   };
 
   const handleBookingSubmit = async () => {
@@ -299,7 +297,7 @@ const BookingFlow = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                {[1, 2, 3, 4, 5].map((num) => (
                   <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
                 ))}
               </SelectContent>
@@ -313,7 +311,7 @@ const BookingFlow = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                {[1, 2, 3, 4, 5].map((num) => (
                   <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
                 ))}
               </SelectContent>
