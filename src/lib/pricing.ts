@@ -16,6 +16,7 @@ export interface PricingInput {
     hotTubBasic: boolean;
     hotTubFullClean: boolean;
     hotTubFullCleanFrequency?: 'monthly' | 'bi-monthly' | 'tri-monthly' | 'quarterly' | 'every-5-months' | 'every-6-months';
+    hotTubFirstClean?: boolean;
   };
   frequency: 'one-time' | 'weekly' | 'bi-weekly' | 'tri-weekly' | 'monthly';
 }
@@ -123,7 +124,14 @@ export function calculatePrice(
   
   // Hot tub pricing
   if (addOns.hotTubBasic) addOnsPrice += 20;
-  if (addOns.hotTubFullClean) addOnsPrice += 50;
+  if (addOns.hotTubFullClean) {
+    // Base $50 charge for hot tub full drain & clean
+    addOnsPrice += 50;
+    
+    // Additional $50 per occurrence based on frequency (handled in recurring billing)
+    // The frequency determines how often the $50 charge is applied:
+    // monthly = every month, bi-monthly = every 2 months, etc.
+  }
 
   const subtotal = basePrice + sqftSurcharge + addOnsPrice;
 

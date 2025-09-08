@@ -54,6 +54,7 @@ interface BookingData {
     hotTubBasic: boolean;
     hotTubFullClean: boolean;
     hotTubFullCleanFrequency: 'monthly' | 'bi-monthly' | 'tri-monthly' | 'quarterly' | 'every-5-months' | 'every-6-months';
+    hotTubFirstClean: boolean;
   };
   
   // Frequency
@@ -103,6 +104,7 @@ const BookingFlow = () => {
       hotTubBasic: false,
       hotTubFullClean: false,
       hotTubFullCleanFrequency: 'monthly',
+      hotTubFirstClean: false,
     },
     frequency: 'one-time',
     parking: '',
@@ -834,31 +836,48 @@ const BookingFlow = () => {
             </div>
             
             {bookingData.addOns.hotTubFullClean && (
-              <div className="space-y-2 ml-8">
-                <Label htmlFor="hotTubFrequency">How often for full drain & clean?</Label>
-                <Select 
-                  value={bookingData.addOns.hotTubFullCleanFrequency} 
-                  onValueChange={(value: 'monthly' | 'bi-monthly' | 'tri-monthly' | 'quarterly' | 'every-5-months' | 'every-6-months') => 
-                    updateBookingData({ 
-                      addOns: { ...bookingData.addOns, hotTubFullCleanFrequency: value }
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="bi-monthly">Every 2 Months</SelectItem>
-                    <SelectItem value="tri-monthly">Every 3 Months</SelectItem>
-                    <SelectItem value="quarterly">Every 4 Months</SelectItem>
-                    <SelectItem value="every-5-months">Every 5 Months</SelectItem>
-                    <SelectItem value="every-6-months">Every 6 Months</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  Full drain & clean will be performed at this interval, while basic cleaning happens with each regular service
-                </p>
+              <div className="space-y-4 ml-8">
+                <div className="flex items-center space-x-3">
+                  <Checkbox 
+                    id="hotTubFirstClean"
+                    checked={bookingData.addOns.hotTubFirstClean}
+                    onCheckedChange={(checked) => 
+                      updateBookingData({ 
+                        addOns: { ...bookingData.addOns, hotTubFirstClean: checked as boolean }
+                      })
+                    }
+                  />
+                  <Label htmlFor="hotTubFirstClean" className="cursor-pointer">
+                    Would you like this done on the first clean?
+                  </Label>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="hotTubFrequency">How often for full drain & clean?</Label>
+                  <Select 
+                    value={bookingData.addOns.hotTubFullCleanFrequency} 
+                    onValueChange={(value: 'monthly' | 'bi-monthly' | 'tri-monthly' | 'quarterly' | 'every-5-months' | 'every-6-months') => 
+                      updateBookingData({ 
+                        addOns: { ...bookingData.addOns, hotTubFullCleanFrequency: value }
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="bi-monthly">Every 2 Months</SelectItem>
+                      <SelectItem value="tri-monthly">Every 3 Months</SelectItem>
+                      <SelectItem value="quarterly">Every 4 Months</SelectItem>
+                      <SelectItem value="every-5-months">Every 5 Months</SelectItem>
+                      <SelectItem value="every-6-months">Every 6 Months</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Full drain and clean will be performed at this interval. If you need basic cleans every turnover, please also add the basic clean option.
+                  </p>
+                </div>
               </div>
             )}
           </div>
