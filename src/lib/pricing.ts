@@ -13,6 +13,9 @@ export interface PricingInput {
     laundryLocation?: 'onsite' | 'offsite' | '';
     insideFridge: boolean;
     insideWindows: boolean;
+    hotTubBasic: boolean;
+    hotTubFullClean: boolean;
+    hotTubFullCleanFrequency?: 'monthly' | 'bi-monthly' | 'tri-monthly' | 'quarterly' | 'every-5-months' | 'every-6-months';
   };
   frequency: 'one-time' | 'weekly' | 'bi-weekly' | 'tri-weekly' | 'monthly';
 }
@@ -55,7 +58,14 @@ export function calculatePrice(
   baths: number, 
   halfBaths: number = 0,
   sqft: number, 
-  addOns: PricingInput['addOns'] = { deepCleaning: false, laundry: false, insideFridge: false, insideWindows: false },
+  addOns: PricingInput['addOns'] = { 
+    deepCleaning: false, 
+    laundry: false, 
+    insideFridge: false, 
+    insideWindows: false, 
+    hotTubBasic: false, 
+    hotTubFullClean: false 
+  },
   frequency: PricingInput['frequency'] = 'one-time',
   serviceType: string = 'residential'
 ): PricingResult {
@@ -102,7 +112,7 @@ export function calculatePrice(
   if (addOns.laundry) {
     const loads = addOns.laundryLoads || 1;
     if (addOns.laundryLocation === 'offsite') {
-      addOnsPrice += 20 + (loads * 9); // $20 base + $9 per load
+      addOnsPrice += 20 + (loads * 9) + (loads * 5); // $20 base + $9 per load + $5 cleaner bonus per load
     } else {
       addOnsPrice += loads * 9; // $9 per load for in-unit
     }
@@ -110,6 +120,10 @@ export function calculatePrice(
   
   if (addOns.insideFridge) addOnsPrice += 15;
   if (addOns.insideWindows) addOnsPrice += 10;
+  
+  // Hot tub pricing
+  if (addOns.hotTubBasic) addOnsPrice += 20;
+  if (addOns.hotTubFullClean) addOnsPrice += 50;
 
   const subtotal = basePrice + sqftSurcharge + addOnsPrice;
 
@@ -179,4 +193,4 @@ export const FLORIDA_CITIES = [
 
 export type FloridaCity = typeof FLORIDA_CITIES[number];
 
-export const EARLIEST_CLEAN_DATE = '2025-09-21';
+export const EARLIEST_CLEAN_DATE = '2025-09-23';

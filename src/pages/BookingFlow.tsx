@@ -51,6 +51,9 @@ interface BookingData {
     laundryLocation: 'onsite' | 'offsite' | '';
     insideFridge: boolean;
     insideWindows: boolean;
+    hotTubBasic: boolean;
+    hotTubFullClean: boolean;
+    hotTubFullCleanFrequency: 'monthly' | 'bi-monthly' | 'tri-monthly' | 'quarterly' | 'every-5-months' | 'every-6-months';
   };
   
   // Frequency
@@ -97,6 +100,9 @@ const BookingFlow = () => {
       laundryLocation: '',
       insideFridge: false,
       insideWindows: false,
+      hotTubBasic: false,
+      hotTubFullClean: false,
+      hotTubFullCleanFrequency: 'monthly',
     },
     frequency: 'one-time',
     parking: '',
@@ -153,7 +159,7 @@ const BookingFlow = () => {
       bookingData.sqft, 
       bookingData.addOns,
       bookingData.frequency,
-      bookingData.serviceType
+      bookingData.serviceType.toLowerCase()
     );
   };
 
@@ -470,39 +476,6 @@ const BookingFlow = () => {
           </div>
         )}
 
-        {bookingData.serviceType === 'Residential' && (
-          <div className="space-y-4">
-            <Label>Cleaning Option</Label>
-            <RadioGroup 
-              value={bookingData.cleaningType} 
-              onValueChange={(value: 'one-time' | 'subscription') => {
-                updateBookingData({ 
-                  cleaningType: value,
-          frequency: value === 'one-time' ? 'one-time' : 'weekly'
-                });
-              }}
-            >
-              <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                <RadioGroupItem value="one-time" id="one-time-cleaning" />
-                <div className="flex-1">
-                  <Label htmlFor="one-time-cleaning" className="cursor-pointer">
-                    <div className="font-medium">One-Time Cleaning</div>
-                    <div className="text-sm text-muted-foreground">Single cleaning service with immediate payment</div>
-                  </Label>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                <RadioGroupItem value="subscription" id="subscription-cleaning" />
-                <div className="flex-1">
-                  <Label htmlFor="subscription-cleaning" className="cursor-pointer">
-                    <div className="font-medium">Subscription Cleaning</div>
-                    <div className="text-sm text-muted-foreground">Recurring service with payment per completed job</div>
-                  </Label>
-                </div>
-              </div>
-            </RadioGroup>
-          </div>
-        )}
 
         {bookingData.cleaningType === 'subscription' && (
           <div className="space-y-2">
@@ -777,7 +750,7 @@ const BookingFlow = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="offsite" id="offsite" />
-                      <Label htmlFor="offsite" className="cursor-pointer">Off-site laundry (+$5 fee)</Label>
+                      <Label htmlFor="offsite" className="cursor-pointer">Off-site laundry (+$20 base + $5 per load)</Label>
                     </div>
                   </RadioGroup>
                 </div>
@@ -821,6 +794,75 @@ const BookingFlow = () => {
               </div>
             </div>
             <span className="font-semibold text-primary">+$10</span>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Checkbox 
+                id="hotTubBasic"
+                checked={bookingData.addOns.hotTubBasic}
+                onCheckedChange={(checked) => 
+                  updateBookingData({ 
+                    addOns: { ...bookingData.addOns, hotTubBasic: checked as boolean }
+                  })
+                }
+              />
+              <div>
+                <Label htmlFor="hotTubBasic" className="font-medium cursor-pointer">Hot Tub Basic Clean</Label>
+                <p className="text-sm text-muted-foreground">Basic hot tub cleaning and maintenance</p>
+              </div>
+            </div>
+            <span className="font-semibold text-primary">+$20</span>
+          </div>
+
+          <div className="space-y-4 p-4 border rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Checkbox 
+                  id="hotTubFullClean"
+                  checked={bookingData.addOns.hotTubFullClean}
+                  onCheckedChange={(checked) => 
+                    updateBookingData({ 
+                      addOns: { ...bookingData.addOns, hotTubFullClean: checked as boolean }
+                    })
+                  }
+                />
+                <div>
+                  <Label htmlFor="hotTubFullClean" className="font-medium cursor-pointer">Hot Tub Full Drain & Clean</Label>
+                  <p className="text-sm text-muted-foreground">Complete drain, deep clean, and refill</p>
+                </div>
+              </div>
+              <span className="font-semibold text-primary">+$50</span>
+            </div>
+            
+            {bookingData.addOns.hotTubFullClean && (
+              <div className="space-y-2 ml-8">
+                <Label htmlFor="hotTubFrequency">How often for full drain & clean?</Label>
+                <Select 
+                  value={bookingData.addOns.hotTubFullCleanFrequency} 
+                  onValueChange={(value: 'monthly' | 'bi-monthly' | 'tri-monthly' | 'quarterly' | 'every-5-months' | 'every-6-months') => 
+                    updateBookingData({ 
+                      addOns: { ...bookingData.addOns, hotTubFullCleanFrequency: value }
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="bi-monthly">Every 2 Months</SelectItem>
+                    <SelectItem value="tri-monthly">Every 3 Months</SelectItem>
+                    <SelectItem value="quarterly">Every 4 Months</SelectItem>
+                    <SelectItem value="every-5-months">Every 5 Months</SelectItem>
+                    <SelectItem value="every-6-months">Every 6 Months</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  Full drain & clean will be performed at this interval, while basic cleaning happens with each regular service
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -866,69 +908,127 @@ const BookingFlow = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            <RadioGroup 
-              value={bookingData.frequency} 
-              onValueChange={(value: BookingData['frequency']) => updateBookingData({ frequency: value })}
-            >
-              {bookingData.cleaningType === 'one-time' ? (
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <RadioGroupItem value="one-time" id="one-time" />
-                    <div>
-                      <Label htmlFor="one-time" className="font-medium cursor-pointer">One Time</Label>
-                      <p className="text-sm text-muted-foreground">Single cleaning service</p>
-                    </div>
+            {/* Cleaning Option Section moved from service step */}
+            <div className="space-y-4">
+              <Label>Cleaning Option</Label>
+              <RadioGroup 
+                value={bookingData.cleaningType} 
+                onValueChange={(value: 'one-time' | 'subscription') => {
+                  updateBookingData({ 
+                    cleaningType: value,
+                    frequency: value === 'one-time' ? 'one-time' : 'weekly'
+                  });
+                }}
+              >
+                <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                  <RadioGroupItem value="one-time" id="one-time-cleaning" />
+                  <div className="flex-1">
+                    <Label htmlFor="one-time-cleaning" className="cursor-pointer">
+                      <div className="font-medium">One-Time Cleaning</div>
+                      <div className="text-sm text-muted-foreground">Single cleaning service with immediate payment</div>
+                    </Label>
                   </div>
-                  <span className="font-semibold text-muted-foreground">No discount</span>
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem value="weekly" id="weekly" />
-                      <div>
-                        <Label htmlFor="weekly" className="font-medium cursor-pointer">Every Week</Label>
-                        <p className="text-sm text-muted-foreground">Weekly cleaning service</p>
-                      </div>
-                    </div>
-                    <span className="font-semibold text-green-600">15% off</span>
+                <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                  <RadioGroupItem value="subscription" id="subscription-cleaning" />
+                  <div className="flex-1">
+                    <Label htmlFor="subscription-cleaning" className="cursor-pointer">
+                      <div className="font-medium">Subscription Cleaning</div>
+                      <div className="text-sm text-muted-foreground">Recurring service with discounts - get up to 15% off!</div>
+                    </Label>
                   </div>
+                </div>
+              </RadioGroup>
+            </div>
 
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem value="bi-weekly" id="bi-weekly" />
-                      <div>
-                        <Label htmlFor="bi-weekly" className="font-medium cursor-pointer">Every 2 Weeks</Label>
-                        <p className="text-sm text-muted-foreground">Bi-weekly cleaning service</p>
-                      </div>
-                    </div>
-                    <span className="font-semibold text-green-600">10% off</span>
-                  </div>
+            {bookingData.cleaningType === 'subscription' && (
+              <div className="space-y-2">
+                <Label htmlFor="months">Subscription Length</Label>
+                <Select value={bookingData.months.toString()} onValueChange={(value) => updateBookingData({ months: parseInt(value) })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 Month</SelectItem>
+                    <SelectItem value="2">2 Months</SelectItem>
+                    <SelectItem value="3">3 Months</SelectItem>
+                    <SelectItem value="4">4 Months</SelectItem>
+                    <SelectItem value="5">5 Months</SelectItem>
+                    <SelectItem value="6">6 Months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem value="tri-weekly" id="tri-weekly" />
-                      <div>
-                        <Label htmlFor="tri-weekly" className="font-medium cursor-pointer">Every 3 Weeks</Label>
-                        <p className="text-sm text-muted-foreground">Tri-weekly cleaning service</p>
+            {/* Frequency Selection */}
+            {bookingData.cleaningType && (
+              <div className="space-y-4">
+                <Label>How Often?</Label>
+                <RadioGroup 
+                  value={bookingData.frequency} 
+                  onValueChange={(value: BookingData['frequency']) => updateBookingData({ frequency: value })}
+                >
+                  {bookingData.cleaningType === 'one-time' ? (
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <RadioGroupItem value="one-time" id="one-time" />
+                        <div>
+                          <Label htmlFor="one-time" className="font-medium cursor-pointer">One Time</Label>
+                          <p className="text-sm text-muted-foreground">Single cleaning service</p>
+                        </div>
                       </div>
+                      <span className="font-semibold text-muted-foreground">No discount</span>
                     </div>
-                    <span className="font-semibold text-green-600">5% off</span>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <RadioGroupItem value="weekly" id="weekly" />
+                          <div>
+                            <Label htmlFor="weekly" className="font-medium cursor-pointer">Every Week</Label>
+                            <p className="text-sm text-muted-foreground">Weekly cleaning service</p>
+                          </div>
+                        </div>
+                        <span className="font-semibold text-green-600">15% off</span>
+                      </div>
 
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem value="monthly" id="monthly" />
-                      <div>
-                        <Label htmlFor="monthly" className="font-medium cursor-pointer">Every 4 Weeks</Label>
-                        <p className="text-sm text-muted-foreground">Monthly cleaning service</p>
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <RadioGroupItem value="bi-weekly" id="bi-weekly" />
+                          <div>
+                            <Label htmlFor="bi-weekly" className="font-medium cursor-pointer">Every 2 Weeks</Label>
+                            <p className="text-sm text-muted-foreground">Bi-weekly cleaning service</p>
+                          </div>
+                        </div>
+                        <span className="font-semibold text-green-600">10% off</span>
                       </div>
-                    </div>
-                    <span className="font-semibold text-green-600">5% off</span>
-                  </div>
-                </>
-              )}
-            </RadioGroup>
+
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <RadioGroupItem value="tri-weekly" id="tri-weekly" />
+                          <div>
+                            <Label htmlFor="tri-weekly" className="font-medium cursor-pointer">Every 3 Weeks</Label>
+                            <p className="text-sm text-muted-foreground">Tri-weekly cleaning service</p>
+                          </div>
+                        </div>
+                        <span className="font-semibold text-green-600">5% off</span>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <RadioGroupItem value="monthly" id="monthly" />
+                          <div>
+                            <Label htmlFor="monthly" className="font-medium cursor-pointer">Every 4 Weeks</Label>
+                            <p className="text-sm text-muted-foreground">Monthly cleaning service</p>
+                          </div>
+                        </div>
+                        <span className="font-semibold text-green-600">5% off</span>
+                      </div>
+                    </>
+                  )}
+                </RadioGroup>
+              </div>
+            )}
           </div>
         )}
 
@@ -1258,7 +1358,7 @@ const BookingFlow = () => {
                bookingData.beds && bookingData.baths && bookingData.sqft;
       case 'service': 
         return bookingData.serviceType && 
-               (bookingData.serviceType === 'VR' ? bookingData.icalUrl : bookingData.cleaningType);
+               (bookingData.serviceType === 'VR' ? bookingData.icalUrl : true);
       case 'schedule': 
         return bookingData.startDate && 
                (bookingData.serviceType === 'VR' ? 
@@ -1269,7 +1369,7 @@ const BookingFlow = () => {
       case 'addons': 
         return true; // Optional step
       case 'frequency': 
-        return true; // Always valid
+        return bookingData.serviceType === 'VR' || bookingData.cleaningType;
       case 'info': 
         const hasRequiredFields = bookingData.parking && bookingData.access && bookingData.checklistOption;
         const hasAccessCode = (bookingData.access === 'key' || bookingData.access === 'lockbox') ? 
