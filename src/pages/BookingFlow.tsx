@@ -810,6 +810,9 @@ const BookingFlow = () => {
               <div>
                 <Label htmlFor="hotTubBasic" className="font-medium cursor-pointer">Hot Tub Basic Clean</Label>
                 <p className="text-sm text-muted-foreground">Basic hot tub cleaning and maintenance</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Wiping and skimming, chemical testing, and adding chemicals. Please have the chemicals, tools and test strips you would like us to use on site.
+                </p>
               </div>
             </div>
             <span className="font-semibold text-primary">+$20</span>
@@ -852,32 +855,34 @@ const BookingFlow = () => {
                   </Label>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="hotTubFrequency">How often for full drain & clean?</Label>
-                  <Select 
-                    value={bookingData.addOns.hotTubFullCleanFrequency} 
-                    onValueChange={(value: 'monthly' | 'bi-monthly' | 'tri-monthly' | 'quarterly' | 'every-5-months' | 'every-6-months') => 
-                      updateBookingData({ 
-                        addOns: { ...bookingData.addOns, hotTubFullCleanFrequency: value }
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="bi-monthly">Every 2 Months</SelectItem>
-                      <SelectItem value="tri-monthly">Every 3 Months</SelectItem>
-                      <SelectItem value="quarterly">Every 4 Months</SelectItem>
-                      <SelectItem value="every-5-months">Every 5 Months</SelectItem>
-                      <SelectItem value="every-6-months">Every 6 Months</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-muted-foreground">
-                    Full drain and clean will be performed at this interval. If you need basic cleans every turnover, please also add the basic clean option.
-                  </p>
-                </div>
+                {bookingData.addOns.hotTubFirstClean && (
+                  <div className="space-y-2">
+                    <Label htmlFor="hotTubFrequency">How often for full drain & clean?</Label>
+                    <Select 
+                      value={bookingData.addOns.hotTubFullCleanFrequency} 
+                      onValueChange={(value: 'monthly' | 'bi-monthly' | 'tri-monthly' | 'quarterly' | 'every-5-months' | 'every-6-months') => 
+                        updateBookingData({ 
+                          addOns: { ...bookingData.addOns, hotTubFullCleanFrequency: value }
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="bi-monthly">Every 2 Months</SelectItem>
+                        <SelectItem value="tri-monthly">Every 3 Months</SelectItem>
+                        <SelectItem value="quarterly">Every 4 Months</SelectItem>
+                        <SelectItem value="every-5-months">Every 5 Months</SelectItem>
+                        <SelectItem value="every-6-months">Every 6 Months</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">
+                      Full drain and clean will be performed at this interval. If you need basic cleans every turnover, please also add the basic clean option.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
