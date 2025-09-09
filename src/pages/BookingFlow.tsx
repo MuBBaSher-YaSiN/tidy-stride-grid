@@ -750,7 +750,7 @@ const BookingFlow = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="offsite" id="offsite" />
-                      <Label htmlFor="offsite" className="cursor-pointer">Off-site laundry (+$20 base + $5 per load)</Label>
+                      <Label htmlFor="offsite" className="cursor-pointer">Off-site laundry (+$20 base)</Label>
                     </div>
                   </RadioGroup>
                 </div>

@@ -113,7 +113,7 @@ export function calculatePrice(
   if (addOns.laundry) {
     const loads = addOns.laundryLoads || 1;
     if (addOns.laundryLocation === 'offsite') {
-      addOnsPrice += 20 + (loads * 9) + (loads * 5); // $20 base + $9 per load + $5 cleaner bonus per load
+      addOnsPrice += 20 + (loads * 9); // $20 base + $9 per load
     } else {
       addOnsPrice += loads * 9; // $9 per load for in-unit
     }
