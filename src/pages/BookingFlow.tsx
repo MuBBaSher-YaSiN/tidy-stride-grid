@@ -758,43 +758,47 @@ const BookingFlow = () => {
             )}
           </div>
 
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Checkbox 
-                id="insideFridge"
-                checked={bookingData.addOns.insideFridge}
-                onCheckedChange={(checked) => 
-                  updateBookingData({ 
-                    addOns: { ...bookingData.addOns, insideFridge: checked as boolean }
-                  })
-                }
-              />
-              <div>
-                <Label htmlFor="insideFridge" className="font-medium cursor-pointer">Inside the Fridge</Label>
-                <p className="text-sm text-muted-foreground">Clean inside your refrigerator</p>
+          {bookingData.serviceType !== 'VR' && (
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center space-x-3">
+                <Checkbox 
+                  id="insideFridge"
+                  checked={bookingData.addOns.insideFridge}
+                  onCheckedChange={(checked) => 
+                    updateBookingData({ 
+                      addOns: { ...bookingData.addOns, insideFridge: checked as boolean }
+                    })
+                  }
+                />
+                <div>
+                  <Label htmlFor="insideFridge" className="font-medium cursor-pointer">Inside the Fridge</Label>
+                  <p className="text-sm text-muted-foreground">Clean inside your refrigerator</p>
+                </div>
               </div>
+              <span className="font-semibold text-primary">+$15</span>
             </div>
-            <span className="font-semibold text-primary">+$15</span>
-          </div>
+          )}
 
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Checkbox 
-                id="insideWindows"
-                checked={bookingData.addOns.insideWindows}
-                onCheckedChange={(checked) => 
-                  updateBookingData({ 
-                    addOns: { ...bookingData.addOns, insideWindows: checked as boolean }
-                  })
-                }
-              />
-              <div>
-                <Label htmlFor="insideWindows" className="font-medium cursor-pointer">Inside Windows</Label>
-                <p className="text-sm text-muted-foreground">Clean interior window surfaces</p>
+          {bookingData.serviceType !== 'VR' && (
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center space-x-3">
+                <Checkbox 
+                  id="insideWindows"
+                  checked={bookingData.addOns.insideWindows}
+                  onCheckedChange={(checked) => 
+                    updateBookingData({ 
+                      addOns: { ...bookingData.addOns, insideWindows: checked as boolean }
+                    })
+                  }
+                />
+                <div>
+                  <Label htmlFor="insideWindows" className="font-medium cursor-pointer">Inside Windows</Label>
+                  <p className="text-sm text-muted-foreground">Clean interior window surfaces</p>
+                </div>
               </div>
+              <span className="font-semibold text-primary">+$10</span>
             </div>
-            <span className="font-semibold text-primary">+$10</span>
-          </div>
+          )}
 
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="flex items-center space-x-3">
@@ -835,11 +839,40 @@ const BookingFlow = () => {
                   <p className="text-sm text-muted-foreground">Complete drain, deep clean, and refill</p>
                 </div>
               </div>
-              <span className="font-semibold text-primary">+$50</span>
+              {bookingData.addOns.hotTubFullCleanFrequency && (
+                <span className="font-semibold text-primary">+$50</span>
+              )}
             </div>
             
             {bookingData.addOns.hotTubFullClean && (
               <div className="space-y-4 ml-8">
+                <div className="space-y-2">
+                  <Label htmlFor="hotTubFrequency">How often for full drain & clean?</Label>
+                  <Select 
+                    value={bookingData.addOns.hotTubFullCleanFrequency} 
+                    onValueChange={(value: 'monthly' | 'bi-monthly' | 'tri-monthly' | 'quarterly' | 'every-5-months' | 'every-6-months') => 
+                      updateBookingData({ 
+                        addOns: { ...bookingData.addOns, hotTubFullCleanFrequency: value }
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="bi-monthly">Every 2 Months</SelectItem>
+                      <SelectItem value="tri-monthly">Every 3 Months</SelectItem>
+                      <SelectItem value="quarterly">Every 4 Months</SelectItem>
+                      <SelectItem value="every-5-months">Every 5 Months</SelectItem>
+                      <SelectItem value="every-6-months">Every 6 Months</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Full drain and clean will be performed at this interval. If you need basic cleans every turnover, please also add the basic clean option.
+                  </p>
+                </div>
+
                 <div className="flex items-center space-x-3">
                   <Checkbox 
                     id="hotTubFirstClean"
@@ -853,36 +886,10 @@ const BookingFlow = () => {
                   <Label htmlFor="hotTubFirstClean" className="cursor-pointer">
                     Would you like this done on the first clean?
                   </Label>
+                  {bookingData.addOns.hotTubFirstClean && (
+                    <span className="font-semibold text-primary">+$50</span>
+                  )}
                 </div>
-                
-                {bookingData.addOns.hotTubFirstClean && (
-                  <div className="space-y-2">
-                    <Label htmlFor="hotTubFrequency">How often for full drain & clean?</Label>
-                    <Select 
-                      value={bookingData.addOns.hotTubFullCleanFrequency} 
-                      onValueChange={(value: 'monthly' | 'bi-monthly' | 'tri-monthly' | 'quarterly' | 'every-5-months' | 'every-6-months') => 
-                        updateBookingData({ 
-                          addOns: { ...bookingData.addOns, hotTubFullCleanFrequency: value }
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="bi-monthly">Every 2 Months</SelectItem>
-                        <SelectItem value="tri-monthly">Every 3 Months</SelectItem>
-                        <SelectItem value="quarterly">Every 4 Months</SelectItem>
-                        <SelectItem value="every-5-months">Every 5 Months</SelectItem>
-                        <SelectItem value="every-6-months">Every 6 Months</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-sm text-muted-foreground">
-                      Full drain and clean will be performed at this interval. If you need basic cleans every turnover, please also add the basic clean option.
-                    </p>
-                  </div>
-                )}
               </div>
             )}
           </div>
