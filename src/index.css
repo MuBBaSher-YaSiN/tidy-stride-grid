@@ -1,6 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* logo font */
+@font-face {
+  font-family: 'Arkhip';
+  src: url('/fonts/Arkhip_font.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Use only on specific heading */
+.heading-arkhip {
+  font-family: 'Arkhip';
+}
 
 /* CleanNami Design System - Blue Ocean Theme */
 

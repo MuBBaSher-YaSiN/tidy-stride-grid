@@ -27,7 +27,7 @@ const Index = () => {
     className="
       relative select-none
       text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl
-      font-arkhip font-extrabold tracking-tight leading-none
+      heading-arkhip 
       bg-gradient-ocean bg-clip-text text-transparent
       [background-size:200%_100%] animate-ocean
       drop-shadow-[0_6px_24px_rgba(14,165,233,0.35)]
