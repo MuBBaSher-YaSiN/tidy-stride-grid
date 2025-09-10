@@ -935,7 +935,11 @@ const BookingFlow = () => {
                 {hasHotTubFirstClean && (
                   <div className="text-center pt-2 border-t">
                     <p className="text-lg font-semibold text-primary">{formatCurrency(hotTubPrice * 100)}</p>
-                    <p className="text-sm text-muted-foreground">First Hot Tub Full Drain & Clean (one-time)</p>
+                    <p className="text-sm text-muted-foreground">
+                      {bookingData.serviceType === 'Residential' && bookingData.frequency === 'one-time' 
+                        ? 'Hot Tub Full Drain & Clean' 
+                        : 'First Hot Tub Full Drain & Clean (one-time)'}
+                    </p>
                   </div>
                 )}
               </div>
@@ -1125,7 +1129,11 @@ const BookingFlow = () => {
                         </div>
                         {bookingData.addOns.hotTubFirstClean && (
                           <div className="flex justify-between">
-                            <span>First Hot Tub Full Drain & Clean:</span>
+                            <span>
+                              {bookingData.serviceType === 'Residential' && bookingData.frequency === 'one-time' 
+                                ? 'Hot Tub Full Drain & Clean:' 
+                                : 'First Hot Tub Full Drain & Clean:'}
+                            </span>
                             <span className="font-semibold">+{formatCurrency(50 * 100)}</span>
                           </div>
                         )}
@@ -1411,7 +1419,11 @@ const BookingFlow = () => {
                   )}
                   {bookingData.addOns.hotTubFirstClean && (
                     <div className="flex justify-between">
-                      <span>First Hot Tub Full Drain & Clean:</span>
+                      <span>
+                        {bookingData.serviceType === 'Residential' && bookingData.frequency === 'one-time' 
+                          ? 'Hot Tub Full Drain & Clean:' 
+                          : 'First Hot Tub Full Drain & Clean:'}
+                      </span>
                       <span>{formatCurrency(50 * 100)}</span>
                     </div>
                   )}
@@ -1422,7 +1434,11 @@ const BookingFlow = () => {
                   </div>
                   {bookingData.addOns.hotTubFirstClean && (
                     <div className="flex justify-between text-sm text-muted-foreground mt-1">
-                      <span>First Hot Tub Clean (one-time):</span>
+                      <span>
+                        {bookingData.serviceType === 'Residential' && bookingData.frequency === 'one-time' 
+                          ? 'Hot Tub Full Drain & Clean (one-time):' 
+                          : 'First Hot Tub Clean (one-time):'}
+                      </span>
                       <span>+{formatCurrency(50 * 100)}</span>
                     </div>
                   )}
@@ -1443,7 +1459,14 @@ const BookingFlow = () => {
             if (isLoading) return 'Processing...';
             const result = calculateCurrentPrice();
             if (result.isCustomQuote) return 'Request Quote';
-            return `Pay ${formatCurrency(result.price * 100)} & Book`;
+            
+            // Calculate total including hot tub first clean charge
+            let totalPrice = result.price * 100;
+            if (bookingData.addOns.hotTubFirstClean) {
+              totalPrice += 50 * 100; // Add $50 for hot tub first clean
+            }
+            
+            return `Pay ${formatCurrency(totalPrice)} & Book`;
           })()}
         </CleanNamiButton>
       </CardContent>
