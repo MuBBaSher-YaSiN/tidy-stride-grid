@@ -830,7 +830,14 @@ const BookingFlow = () => {
                   checked={bookingData.addOns.hotTubFullClean}
                   onCheckedChange={(checked) => 
                     updateBookingData({ 
-                      addOns: { ...bookingData.addOns, hotTubFullClean: checked as boolean }
+                      addOns: { 
+                        ...bookingData.addOns, 
+                        hotTubFullClean: checked as boolean,
+                        // For residential one-time, automatically set hotTubFirstClean to true when hotTubFullClean is selected
+                        hotTubFirstClean: (bookingData.serviceType === 'Residential' && bookingData.frequency === 'one-time') 
+                          ? checked as boolean 
+                          : bookingData.addOns.hotTubFirstClean
+                      }
                     })
                   }
                 />
@@ -839,6 +846,10 @@ const BookingFlow = () => {
                   <p className="text-sm text-muted-foreground">Complete drain, deep clean, and refill</p>
                 </div>
               </div>
+              {/* Show +$50 immediately for residential one-time */}
+              {bookingData.addOns.hotTubFullClean && bookingData.serviceType === 'Residential' && bookingData.frequency === 'one-time' && (
+                <span className="font-semibold text-primary">+$50</span>
+              )}
             </div>
             
             {bookingData.addOns.hotTubFullClean && (
@@ -873,24 +884,26 @@ const BookingFlow = () => {
                   </div>
                 )}
 
-                {/* Show first clean option for all hot tub full clean selections */}
-                <div className="flex items-center space-x-3">
-                  <Checkbox 
-                    id="hotTubFirstClean"
-                    checked={bookingData.addOns.hotTubFirstClean}
-                    onCheckedChange={(checked) => 
-                      updateBookingData({ 
-                        addOns: { ...bookingData.addOns, hotTubFirstClean: checked as boolean }
-                      })
-                    }
-                  />
-                  <Label htmlFor="hotTubFirstClean" className="cursor-pointer">
-                    Would you like this done on the first clean?
-                  </Label>
-                  {bookingData.addOns.hotTubFirstClean && (
-                    <span className="font-semibold text-primary">+$50</span>
-                  )}
-                </div>
+                {/* Show first clean option only for non-residential-one-time services */}
+                {!(bookingData.serviceType === 'Residential' && bookingData.frequency === 'one-time') && (
+                  <div className="flex items-center space-x-3">
+                    <Checkbox 
+                      id="hotTubFirstClean"
+                      checked={bookingData.addOns.hotTubFirstClean}
+                      onCheckedChange={(checked) => 
+                        updateBookingData({ 
+                          addOns: { ...bookingData.addOns, hotTubFirstClean: checked as boolean }
+                        })
+                      }
+                    />
+                    <Label htmlFor="hotTubFirstClean" className="cursor-pointer">
+                      Would you like this done on the first clean?
+                    </Label>
+                    {bookingData.addOns.hotTubFirstClean && (
+                      <span className="font-semibold text-primary">+$50</span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -898,22 +911,36 @@ const BookingFlow = () => {
 
         {/* Price Preview */}
         <div className="mt-6 p-4 bg-gradient-hero rounded-lg">
-          <div className="text-center">
-            {(() => {
-              const result = calculateCurrentPrice();
-              return result.isCustomQuote ? (
-                <div>
+          {(() => {
+            const result = calculateCurrentPrice();
+            if (result.isCustomQuote) {
+              return (
+                <div className="text-center">
                   <p className="text-lg font-semibold text-primary">Custom Quote Required</p>
                   <p className="text-sm text-muted-foreground">Properties over 3,000 sq ft require a custom quote</p>
                 </div>
-              ) : (
-                <div>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(result.price * 100)}</p>
+              );
+            }
+            
+            const hasHotTubFirstClean = bookingData.addOns.hotTubFirstClean;
+            const hotTubPrice = hasHotTubFirstClean ? 50 : 0;
+            const perCleaningPrice = result.price - hotTubPrice;
+            
+            return (
+              <div className="space-y-2">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(perCleaningPrice * 100)}</p>
                   <p className="text-sm text-muted-foreground">per cleaning</p>
                 </div>
-              );
-            })()}
-          </div>
+                {hasHotTubFirstClean && (
+                  <div className="text-center pt-2 border-t">
+                    <p className="text-lg font-semibold text-primary">{formatCurrency(hotTubPrice * 100)}</p>
+                    <p className="text-sm text-muted-foreground">First Hot Tub Full Drain & Clean (one-time)</p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </CardContent>
     </Card>
@@ -1412,7 +1439,12 @@ const BookingFlow = () => {
           onClick={handleBookingSubmit}
           disabled={isLoading}
         >
-          {isLoading ? 'Processing...' : 'Pay & Book'}
+          {(() => {
+            if (isLoading) return 'Processing...';
+            const result = calculateCurrentPrice();
+            if (result.isCustomQuote) return 'Request Quote';
+            return `Pay ${formatCurrency(result.price * 100)} & Book`;
+          })()}
         </CleanNamiButton>
       </CardContent>
     </Card>
