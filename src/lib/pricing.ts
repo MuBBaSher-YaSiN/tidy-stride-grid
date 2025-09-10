@@ -124,16 +124,8 @@ export function calculatePrice(
   
   // Hot tub pricing
   if (addOns.hotTubBasic) addOnsPrice += 20;
-  if (addOns.hotTubFullClean && addOns.hotTubFullCleanFrequency) {
-    // $50 charge for hot tub full drain & clean (only when frequency is selected)
-    addOnsPrice += 50;
-    
-    // Additional $50 per occurrence based on frequency (handled in recurring billing)
-    // The frequency determines how often the $50 charge is applied:
-    // monthly = every month, bi-monthly = every 2 months, etc.
-  }
   
-  // Additional $50 for first-time hot tub full clean
+  // Only add $50 for first-time hot tub full clean
   if (addOns.hotTubFirstClean) {
     addOnsPrice += 50;
   }
@@ -201,7 +193,12 @@ export function formatCurrency(cents: number): string {
 export const FLORIDA_CITIES = [
   'New Smyrna Beach',
   'Daytona Beach', 
-  'Edgewater'
+  'Edgewater',
+  'Daytona Beach Shores',
+  'South Daytona',
+  'Port Orange',
+  'Holly Hill',
+  'Ormond Beach'
 ] as const;
 
 export type FloridaCity = typeof FLORIDA_CITIES[number];

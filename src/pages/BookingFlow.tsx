@@ -839,57 +839,60 @@ const BookingFlow = () => {
                   <p className="text-sm text-muted-foreground">Complete drain, deep clean, and refill</p>
                 </div>
               </div>
-              {bookingData.addOns.hotTubFullCleanFrequency && (
-                <span className="font-semibold text-primary">+$50</span>
-              )}
             </div>
             
             {bookingData.addOns.hotTubFullClean && (
               <div className="space-y-4 ml-8">
-                <div className="space-y-2">
-                  <Label htmlFor="hotTubFrequency">How often for full drain & clean?</Label>
-                  <Select 
-                    value={bookingData.addOns.hotTubFullCleanFrequency} 
-                    onValueChange={(value: 'monthly' | 'bi-monthly' | 'tri-monthly' | 'quarterly' | 'every-5-months' | 'every-6-months') => 
-                      updateBookingData({ 
-                        addOns: { ...bookingData.addOns, hotTubFullCleanFrequency: value }
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="bi-monthly">Every 2 Months</SelectItem>
-                      <SelectItem value="tri-monthly">Every 3 Months</SelectItem>
-                      <SelectItem value="quarterly">Every 4 Months</SelectItem>
-                      <SelectItem value="every-5-months">Every 5 Months</SelectItem>
-                      <SelectItem value="every-6-months">Every 6 Months</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-muted-foreground">
-                    Full drain and clean will be performed at this interval. If you need basic cleans every turnover, please also add the basic clean option.
-                  </p>
-                </div>
+                {/* Only show frequency options for non-residential-one-time services */}
+                {!(bookingData.serviceType === 'Residential' && bookingData.frequency === 'one-time') && (
+                  <div className="space-y-2">
+                    <Label htmlFor="hotTubFrequency">How often for full drain & clean?</Label>
+                    <Select 
+                      value={bookingData.addOns.hotTubFullCleanFrequency} 
+                      onValueChange={(value: 'monthly' | 'bi-monthly' | 'tri-monthly' | 'quarterly' | 'every-5-months' | 'every-6-months') => 
+                        updateBookingData({ 
+                          addOns: { ...bookingData.addOns, hotTubFullCleanFrequency: value }
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="bi-monthly">Every 2 Months</SelectItem>
+                        <SelectItem value="tri-monthly">Every 3 Months</SelectItem>
+                        <SelectItem value="quarterly">Every 4 Months</SelectItem>
+                        <SelectItem value="every-5-months">Every 5 Months</SelectItem>
+                        <SelectItem value="every-6-months">Every 6 Months</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">
+                      Full Drain and Clean will be assigned, charged and performed at this interval. If you need basic cleans every turnover please also add the basic clean option.
+                    </p>
+                  </div>
+                )}
 
-                <div className="flex items-center space-x-3">
-                  <Checkbox 
-                    id="hotTubFirstClean"
-                    checked={bookingData.addOns.hotTubFirstClean}
-                    onCheckedChange={(checked) => 
-                      updateBookingData({ 
-                        addOns: { ...bookingData.addOns, hotTubFirstClean: checked as boolean }
-                      })
-                    }
-                  />
-                  <Label htmlFor="hotTubFirstClean" className="cursor-pointer">
-                    Would you like this done on the first clean?
-                  </Label>
-                  {bookingData.addOns.hotTubFirstClean && (
-                    <span className="font-semibold text-primary">+$50</span>
-                  )}
-                </div>
+                {/* Only show first clean option for non-residential-one-time services */}
+                {!(bookingData.serviceType === 'Residential' && bookingData.frequency === 'one-time') && (
+                  <div className="flex items-center space-x-3">
+                    <Checkbox 
+                      id="hotTubFirstClean"
+                      checked={bookingData.addOns.hotTubFirstClean}
+                      onCheckedChange={(checked) => 
+                        updateBookingData({ 
+                          addOns: { ...bookingData.addOns, hotTubFirstClean: checked as boolean }
+                        })
+                      }
+                    />
+                    <Label htmlFor="hotTubFirstClean" className="cursor-pointer">
+                      Would you like this done on the first clean?
+                    </Label>
+                    {bookingData.addOns.hotTubFirstClean && (
+                      <span className="font-semibold text-primary">+$50</span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1342,11 +1345,23 @@ const BookingFlow = () => {
                       <span>-{formatCurrency(result.breakdown.discount * 100)}</span>
                     </div>
                   )}
+                  {bookingData.addOns.hotTubFirstClean && (
+                    <div className="flex justify-between">
+                      <span>First Hot Tub Full Drain & Clean:</span>
+                      <span>{formatCurrency(50 * 100)}</span>
+                    </div>
+                  )}
                   <hr className="my-2" />
                   <div className="flex justify-between text-lg font-bold text-primary">
                     <span>Total per cleaning:</span>
                     <span>{formatCurrency(result.price * 100)}</span>
                   </div>
+                  {bookingData.addOns.hotTubFirstClean && (
+                    <div className="flex justify-between text-sm text-muted-foreground mt-1">
+                      <span>First Hot Tub Clean (one-time):</span>
+                      <span>+{formatCurrency(50 * 100)}</span>
+                    </div>
+                  )}
                 </div>
               );
             })()}
