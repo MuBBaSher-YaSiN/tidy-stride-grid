@@ -873,26 +873,24 @@ const BookingFlow = () => {
                   </div>
                 )}
 
-                {/* Only show first clean option for non-residential-one-time services */}
-                {!(bookingData.serviceType === 'Residential' && bookingData.frequency === 'one-time') && (
-                  <div className="flex items-center space-x-3">
-                    <Checkbox 
-                      id="hotTubFirstClean"
-                      checked={bookingData.addOns.hotTubFirstClean}
-                      onCheckedChange={(checked) => 
-                        updateBookingData({ 
-                          addOns: { ...bookingData.addOns, hotTubFirstClean: checked as boolean }
-                        })
-                      }
-                    />
-                    <Label htmlFor="hotTubFirstClean" className="cursor-pointer">
-                      Would you like this done on the first clean?
-                    </Label>
-                    {bookingData.addOns.hotTubFirstClean && (
-                      <span className="font-semibold text-primary">+$50</span>
-                    )}
-                  </div>
-                )}
+                {/* Show first clean option for all hot tub full clean selections */}
+                <div className="flex items-center space-x-3">
+                  <Checkbox 
+                    id="hotTubFirstClean"
+                    checked={bookingData.addOns.hotTubFirstClean}
+                    onCheckedChange={(checked) => 
+                      updateBookingData({ 
+                        addOns: { ...bookingData.addOns, hotTubFirstClean: checked as boolean }
+                      })
+                    }
+                  />
+                  <Label htmlFor="hotTubFirstClean" className="cursor-pointer">
+                    Would you like this done on the first clean?
+                  </Label>
+                  {bookingData.addOns.hotTubFirstClean && (
+                    <span className="font-semibold text-primary">+$50</span>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1066,27 +1064,66 @@ const BookingFlow = () => {
 
         {/* Price Preview */}
         <div className="mt-6 p-4 bg-gradient-hero rounded-lg">
-          <div className="text-center">
-            {(() => {
-              const result = calculateCurrentPrice();
-              return result.isCustomQuote ? (
-                <div>
-                  <p className="text-lg font-semibold text-primary">Custom Quote Required</p>
-                  <p className="text-sm text-muted-foreground">Properties over 3,000 sq ft require a custom quote</p>
+          {(() => {
+            const result = calculateCurrentPrice();
+            return result.isCustomQuote ? (
+              <div className="text-center">
+                <p className="text-lg font-semibold text-primary">Custom Quote Required</p>
+                <p className="text-sm text-muted-foreground">Properties over 3,000 sq ft require a custom quote</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <h4 className="text-lg font-semibold text-primary text-center mb-3">Price Breakdown</h4>
+                <div className="space-y-1 text-sm">
+                  {/* Calculate price without hot tub first clean */}
+                  {(() => {
+                    const priceWithoutHotTubFirstClean = calculatePrice(
+                      bookingData.beds,
+                      bookingData.baths,
+                      bookingData.halfBaths,
+                      bookingData.sqft,
+                      {
+                        ...bookingData.addOns,
+                        hotTubFirstClean: false // Exclude first clean to show separate pricing
+                      },
+                      bookingData.frequency,
+                      bookingData.serviceType === 'VR' ? 'vacation_rental' : 'residential'
+                    );
+                    
+                    return (
+                      <>
+                        <div className="flex justify-between">
+                          <span>Per cleaning:</span>
+                          <span className="font-semibold">{formatCurrency(priceWithoutHotTubFirstClean.price * 100)}</span>
+                        </div>
+                        {bookingData.addOns.hotTubFirstClean && (
+                          <div className="flex justify-between">
+                            <span>First Hot Tub Full Drain & Clean:</span>
+                            <span className="font-semibold">+{formatCurrency(50 * 100)}</span>
+                          </div>
+                        )}
+                        <hr className="my-2" />
+                        <div className="flex justify-between text-lg font-bold text-primary">
+                          <span>Total per cleaning:</span>
+                          <span>{formatCurrency(result.price * 100)}</span>
+                        </div>
+                        {result.breakdown.discount > 0 && (
+                          <p className="text-sm text-green-600 mt-1 text-center">
+                            You save {formatCurrency(result.breakdown.discount * 100)} per cleaning!
+                          </p>
+                        )}
+                        {bookingData.addOns.hotTubFirstClean && (
+                          <p className="text-xs text-muted-foreground mt-1 text-center">
+                            Hot Tub First Clean is a one-time charge added to your first cleaning
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
-              ) : (
-                <div>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(result.price * 100)}</p>
-                  <p className="text-sm text-muted-foreground">per cleaning</p>
-                  {result.breakdown.discount > 0 && (
-                    <p className="text-sm text-green-600 mt-1">
-                      You save {formatCurrency(result.breakdown.discount * 100)} per cleaning!
-                    </p>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
+              </div>
+            );
+          })()}
         </div>
       </CardContent>
     </Card>
