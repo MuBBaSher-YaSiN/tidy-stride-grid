@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CleanNamiButton } from "@/components/ui/button-variants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import ICalTestPanel from "@/components/ICalTestPanel";
 import { 
   Shield, 
   Users, 
@@ -266,6 +267,11 @@ const AdminDashboard = () => {
               </Link>
             </CardContent>
           </Card>
+        </div>
+
+        {/* iCal Testing Panel */}
+        <div className="mb-8">
+          <ICalTestPanel />
         </div>
 
         {/* Recent Activity */}
