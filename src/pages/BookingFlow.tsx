@@ -121,6 +121,7 @@ const BookingFlow = () => {
   });
   
   const [isLoading, setIsLoading] = useState(false);
+  const [newIcalUrl, setNewIcalUrl] = useState('');
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -1441,19 +1442,18 @@ const BookingFlow = () => {
     </Card>
   );
 
-  const renderICalStep = () => {
-    const [newIcalUrl, setNewIcalUrl] = useState('');
+  const addICalUrl = () => {
+    if (newIcalUrl.trim()) {
+      updateBookingData({ icalUrls: [...bookingData.icalUrls, newIcalUrl.trim()] });
+      setNewIcalUrl('');
+      toast({
+        title: "Success!",
+        description: "Calendar URL added successfully!",
+      });
+    }
+  };
 
-    const addICalUrl = () => {
-      if (newIcalUrl.trim()) {
-        updateBookingData({ icalUrls: [...bookingData.icalUrls, newIcalUrl.trim()] });
-        setNewIcalUrl('');
-        toast({
-          title: "Success!",
-          description: "Calendar URL added successfully!",
-        });
-      }
-    };
+  const renderICalStep = () => {
 
     return (
       <Card className="w-full max-w-4xl mx-auto">
