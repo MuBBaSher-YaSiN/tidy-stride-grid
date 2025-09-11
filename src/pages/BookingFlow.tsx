@@ -353,8 +353,15 @@ const BookingFlow = () => {
           <Input
             id="address1"
             value={bookingData.address1}
-            onChange={(e) => updateBookingData({ address1: e.target.value })}
+            onChange={(e) => {
+              // Sanitize input: only allow alphanumeric, spaces, periods, commas, hyphens
+              const sanitized = e.target.value.replace(/[^a-zA-Z0-9\s.,\-#]/g, '');
+              if (sanitized.length <= 100) {
+                updateBookingData({ address1: sanitized });
+              }
+            }}
             placeholder="123 Main Street"
+            maxLength={100}
             required
           />
         </div>
@@ -364,8 +371,15 @@ const BookingFlow = () => {
           <Input
             id="address2"
             value={bookingData.address2}
-            onChange={(e) => updateBookingData({ address2: e.target.value })}
+            onChange={(e) => {
+              // Sanitize input: only allow alphanumeric, spaces, periods, commas, hyphens
+              const sanitized = e.target.value.replace(/[^a-zA-Z0-9\s.,\-#]/g, '');
+              if (sanitized.length <= 50) {
+                updateBookingData({ address2: sanitized });
+              }
+            }}
             placeholder="Apt 4B"
+            maxLength={50}
           />
         </div>
 
@@ -389,9 +403,16 @@ const BookingFlow = () => {
             <Input
               id="zipcode"
               value={bookingData.zipcode}
-              onChange={(e) => updateBookingData({ zipcode: e.target.value })}
+              onChange={(e) => {
+                // Only allow numeric input for ZIP code
+                const sanitized = e.target.value.replace(/[^0-9]/g, '');
+                if (sanitized.length <= 5) {
+                  updateBookingData({ zipcode: sanitized });
+                }
+              }}
               placeholder="32169"
               maxLength={5}
+              pattern="[0-9]{5}"
             />
           </div>
         </div>
@@ -466,9 +487,17 @@ const BookingFlow = () => {
             <Input
               id="icalUrl"
               value={bookingData.icalUrl || ''}
-              onChange={(e) => updateBookingData({ icalUrl: e.target.value })}
+              onChange={(e) => {
+                // Basic URL validation - only allow valid URL characters
+                const sanitized = e.target.value.replace(/[^a-zA-Z0-9:\/\.\-_?&=%]/g, '');
+                if (sanitized.length <= 500) {
+                  updateBookingData({ icalUrl: sanitized });
+                }
+              }}
               placeholder="https://www.airbnb.com/calendar/ical/..."
-            required
+              maxLength={500}
+              type="url"
+              required
             />
             <p className="text-sm text-muted-foreground">
               Connect your booking calendar for automatic scheduling
@@ -626,8 +655,15 @@ const BookingFlow = () => {
           <Input
             id="name"
             value={bookingData.name}
-            onChange={(e) => updateBookingData({ name: e.target.value })}
+            onChange={(e) => {
+              // Only allow letters, spaces, hyphens, and apostrophes for names
+              const sanitized = e.target.value.replace(/[^a-zA-Z\s\-'\.]/g, '');
+              if (sanitized.length <= 100) {
+                updateBookingData({ name: sanitized });
+              }
+            }}
             placeholder="John Doe"
+            maxLength={100}
             required
           />
         </div>
@@ -638,8 +674,16 @@ const BookingFlow = () => {
             id="email"
             type="email"
             value={bookingData.email}
-            onChange={(e) => updateBookingData({ email: e.target.value })}
+            onChange={(e) => {
+              // Basic email validation - remove invalid characters
+              const sanitized = e.target.value.replace(/[^a-zA-Z0-9@\.\-_\+]/g, '').toLowerCase();
+              if (sanitized.length <= 254) {
+                updateBookingData({ email: sanitized });
+              }
+            }}
             placeholder="john@example.com"
+            maxLength={254}
+            pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
             required
           />
         </div>
@@ -650,8 +694,16 @@ const BookingFlow = () => {
             id="phone"
             type="tel"
             value={bookingData.phone}
-            onChange={(e) => updateBookingData({ phone: e.target.value })}
+            onChange={(e) => {
+              // Only allow numbers, spaces, hyphens, parentheses, and plus signs for phone
+              const sanitized = e.target.value.replace(/[^0-9\s\-\(\)\+\.]/g, '');
+              if (sanitized.length <= 20) {
+                updateBookingData({ phone: sanitized });
+              }
+            }}
             placeholder="(555) 123-4567"
+            maxLength={20}
+            pattern="[\+]?[0-9\s\-\(\)]{10,20}"
             required
           />
         </div>
@@ -1204,8 +1256,15 @@ const BookingFlow = () => {
                 <Input
                   id="parkingOther"
                   value={bookingData.parkingOther}
-                  onChange={(e) => updateBookingData({ parkingOther: e.target.value })}
+                  onChange={(e) => {
+                    // Sanitize parking description input
+                    const sanitized = e.target.value.replace(/[<>'"&]/g, '');
+                    if (sanitized.length <= 200) {
+                      updateBookingData({ parkingOther: sanitized });
+                    }
+                  }}
                   placeholder="Describe parking situation"
+                  maxLength={200}
                 />
               </div>
             )}
@@ -1266,9 +1325,18 @@ const BookingFlow = () => {
                 <Input
                   id="accessCode"
                   value={bookingData.accessCode}
-                  onChange={(e) => updateBookingData({ accessCode: e.target.value })}
+                  onChange={(e) => {
+                    // Sanitize access code/location input
+                    const sanitized = bookingData.access === 'lockbox' 
+                      ? e.target.value.replace(/[^a-zA-Z0-9]/g, '') // Only alphanumeric for lockbox codes
+                      : e.target.value.replace(/[<>'"&]/g, ''); // Basic sanitization for key location
+                    if (sanitized.length <= 100) {
+                      updateBookingData({ accessCode: sanitized });
+                    }
+                  }}
                   placeholder={bookingData.access === 'lockbox' ? 'Enter lock box code' : 'Describe where the key is hidden'}
                   type={bookingData.access === 'lockbox' ? 'password' : 'text'}
+                  maxLength={100}
                 />
               </div>
             )}
@@ -1279,9 +1347,16 @@ const BookingFlow = () => {
                 <Input
                   id="smartLockCode"
                   value={bookingData.smartLockCode}
-                  onChange={(e) => updateBookingData({ smartLockCode: e.target.value })}
+                  onChange={(e) => {
+                    // Only allow alphanumeric characters for smart lock codes
+                    const sanitized = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+                    if (sanitized.length <= 20) {
+                      updateBookingData({ smartLockCode: sanitized });
+                    }
+                  }}
                   placeholder="Enter door code"
                   type="password"
+                  maxLength={20}
                 />
               </div>
             )}
@@ -1339,9 +1414,16 @@ const BookingFlow = () => {
             <Textarea
               id="additionalNotes"
               value={bookingData.additionalNotes}
-              onChange={(e) => updateBookingData({ additionalNotes: e.target.value })}
+              onChange={(e) => {
+                // Sanitize additional notes input - remove potentially harmful characters
+                const sanitized = e.target.value.replace(/[<>'"&]/g, '');
+                if (sanitized.length <= 1000) {
+                  updateBookingData({ additionalNotes: sanitized });
+                }
+              }}
               placeholder="Any special instructions for our cleaning team..."
               rows={4}
+              maxLength={1000}
             />
           </div>
         </div>
