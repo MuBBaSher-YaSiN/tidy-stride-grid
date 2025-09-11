@@ -72,7 +72,7 @@ export default function BookingSuccess() {
             console.log("Booking details loaded:", bookingData);
             
             // Show appropriate success message based on payment mode
-            const isOneTime = bookingData.payment_mode === 'one-time';
+            const isOneTime = bookingData?.payment_mode === 'one-time';
             toast({
               title: "Booking Confirmed!",
               description: isOneTime 
@@ -190,7 +190,7 @@ export default function BookingSuccess() {
                   <div className="text-sm text-purple-800">
                     <p><strong>Total Cost:</strong> {formatCurrency(booking.total_price_cents)}</p>
                     <p className="text-xs mt-1">
-                      {booking.payment_mode === 'one-time' 
+                      {booking?.payment_mode === 'one-time' 
                         ? "* Payment has been processed successfully"
                         : "* You'll be charged after service completion"
                       }
