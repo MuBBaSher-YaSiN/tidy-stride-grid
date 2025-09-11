@@ -13,7 +13,7 @@ import { calculatePrice, formatCurrency, FLORIDA_CITIES, EARLIEST_CLEAN_DATE, ty
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-type BookingStep = 'property' | 'service' | 'schedule' | 'contact' | 'payment' | 'addons' | 'frequency' | 'info';
+type BookingStep = 'property' | 'service' | 'schedule' | 'contact' | 'addons' | 'frequency' | 'info' | 'ical' | 'payment';
 
 interface BookingData {
   // Property details
@@ -30,7 +30,8 @@ interface BookingData {
   serviceType: 'Residential' | 'VR' | '';
   cleaningType: 'one-time' | 'subscription' | '';
   months: number;
-  icalUrl?: string;
+  icalUrls: string[];
+  icalValidationStatus: 'pending' | 'valid' | 'invalid';
   
   // Schedule
   startDate: string;
@@ -89,6 +90,8 @@ const BookingFlow = () => {
     serviceType: '',
     cleaningType: '',
     months: 3,
+    icalUrls: [],
+    icalValidationStatus: 'pending',
     startDate: '',
     startTime: '',
     name: '',
@@ -126,7 +129,14 @@ const BookingFlow = () => {
   };
 
   const getSteps = (): BookingStep[] => {
-    const baseSteps: BookingStep[] = ['property', 'service', 'schedule', 'contact', 'addons'];
+    const baseSteps: BookingStep[] = ['property', 'service', 'schedule', 'contact'];
+    
+    // Add iCal step for VR subscriptions
+    if (bookingData.serviceType === 'VR' && bookingData.cleaningType === 'subscription') {
+      baseSteps.push('ical');
+    }
+    
+    baseSteps.push('addons');
     
     // Skip frequency step for VR subscriptions since they already selected subscription length
     if (bookingData.serviceType !== 'VR') {
@@ -219,7 +229,7 @@ const BookingFlow = () => {
       cleaningType: bookingData.cleaningType,
       checkoutTime: bookingData.checkoutTime,
       checkinTime: bookingData.checkinTime,
-      icalUrl: bookingData.icalUrl
+      icalUrls: bookingData.icalUrls
       };
 
       console.log('Starting booking submission...');
@@ -486,12 +496,12 @@ const BookingFlow = () => {
             <Label htmlFor="icalUrl">iCal URL </Label>
             <Input
               id="icalUrl"
-              value={bookingData.icalUrl || ''}
+              value={bookingData.icalUrls[0] || ''}
               onChange={(e) => {
                 // Basic URL validation - only allow valid URL characters
                 const sanitized = e.target.value.replace(/[^a-zA-Z0-9:\/\.\-_?&=%]/g, '');
                 if (sanitized.length <= 500) {
-                  updateBookingData({ icalUrl: sanitized });
+                  updateBookingData({ icalUrls: [sanitized] });
                 }
               }}
               placeholder="https://www.airbnb.com/calendar/ical/..."
@@ -1431,6 +1441,51 @@ const BookingFlow = () => {
     </Card>
   );
 
+  const renderICalStep = () => {
+    const [newIcalUrl, setNewIcalUrl] = useState('');
+
+    const addICalUrl = () => {
+      if (newIcalUrl.trim()) {
+        updateBookingData({ icalUrls: [...bookingData.icalUrls, newIcalUrl.trim()] });
+        setNewIcalUrl('');
+        toast({
+          title: "Success!",
+          description: "Calendar URL added successfully!",
+        });
+      }
+    };
+
+    return (
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-primary">Calendar Integration</CardTitle>
+          <p className="text-muted-foreground">
+            Connect your property calendar for automatic job scheduling.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              type="url"
+              placeholder="https://calendar.airbnb.com/calendar/ics/..."
+              value={newIcalUrl}
+              onChange={(e) => setNewIcalUrl(e.target.value)}
+              className="flex-1"
+            />
+            <CleanNamiButton onClick={addICalUrl} variant="outline">
+              Add URL
+            </CleanNamiButton>
+          </div>
+          {bookingData.icalUrls.map((url, index) => (
+            <div key={index} className="p-3 bg-secondary/50 rounded-md">
+              <span className="text-sm font-mono">{url}</span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  };
+
   const renderPaymentStep = () => (
     <Card className="bg-gradient-card shadow-card">
       <CardHeader>
@@ -1561,6 +1616,7 @@ const BookingFlow = () => {
       case 'service': return renderServiceStep();
       case 'schedule': return renderScheduleStep();
       case 'contact': return renderContactStep();
+      case 'ical': return renderICalStep();
       case 'addons': return renderAddOnsStep();
       case 'frequency': return renderFrequencyStep();
       case 'info': return renderInfoStep();
@@ -1576,7 +1632,9 @@ const BookingFlow = () => {
                bookingData.beds && bookingData.baths && bookingData.sqft;
       case 'service': 
         return bookingData.serviceType && 
-               (bookingData.serviceType === 'VR' ? bookingData.icalUrl : true);
+               (bookingData.serviceType === 'VR' ? bookingData.icalUrls.length > 0 : true);
+      case 'ical':
+        return bookingData.icalUrls.length > 0;
       case 'schedule': 
         return bookingData.startDate && 
                (bookingData.serviceType === 'VR' ? 
@@ -1605,6 +1663,7 @@ const BookingFlow = () => {
     service: 'Service Type',
     schedule: 'Scheduling',
     contact: 'Contact Info',
+    ical: 'Calendar Integration',
     addons: 'Add-ons',
     frequency: bookingData.serviceType === 'VR' ? 'Subscription' : 'Frequency',
     info: 'Additional Info',

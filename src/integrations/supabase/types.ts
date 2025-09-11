@@ -91,9 +91,12 @@ export type Database = {
           customer_phone: string
           deep_cleaning: boolean | null
           frequency: string
+          ical_urls: string[] | null
+          ical_validation_status: string | null
           id: string
           inside_fridge: boolean | null
           inside_windows: boolean | null
+          last_ical_sync: string | null
           laundry: boolean | null
           parking_info: string | null
           payment_mode: string | null
@@ -129,9 +132,12 @@ export type Database = {
           customer_phone: string
           deep_cleaning?: boolean | null
           frequency: string
+          ical_urls?: string[] | null
+          ical_validation_status?: string | null
           id?: string
           inside_fridge?: boolean | null
           inside_windows?: boolean | null
+          last_ical_sync?: string | null
           laundry?: boolean | null
           parking_info?: string | null
           payment_mode?: string | null
@@ -167,9 +173,12 @@ export type Database = {
           customer_phone?: string
           deep_cleaning?: boolean | null
           frequency?: string
+          ical_urls?: string[] | null
+          ical_validation_status?: string | null
           id?: string
           inside_fridge?: boolean | null
           inside_windows?: boolean | null
+          last_ical_sync?: string | null
           laundry?: boolean | null
           parking_info?: string | null
           payment_mode?: string | null
@@ -340,6 +349,63 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      ical_events: {
+        Row: {
+          booking_id: string
+          checkout_date: string
+          created_at: string
+          event_end: string
+          event_start: string
+          event_summary: string | null
+          event_uid: string
+          id: string
+          job_created: boolean | null
+          job_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          booking_id: string
+          checkout_date: string
+          created_at?: string
+          event_end: string
+          event_start: string
+          event_summary?: string | null
+          event_uid: string
+          id?: string
+          job_created?: boolean | null
+          job_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string
+          checkout_date?: string
+          created_at?: string
+          event_end?: string
+          event_start?: string
+          event_summary?: string | null
+          event_uid?: string
+          id?: string
+          job_created?: boolean | null
+          job_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ical_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ical_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       jobs: {
         Row: {

@@ -78,3 +78,6 @@ verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.poll-ical-and-create-jobs]
+verify_jwt = false
