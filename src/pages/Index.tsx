@@ -13,22 +13,22 @@ import { useState } from "react";
 const Index = () => {
    const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <div className="min-h-screen w-full bg-gradient-hero overflow-x-hidden">
+    <div className="min-h-screen w-full bg-gradient-hero">
       {/* Navigation */}
-      <nav className="w-full px-4 sm:px-6">
-        <div className="flex justify-between items-center py-4 max-w-7xl mx-auto">
-          {/* Brand section - responsive sizing */}
-          <div className="flex flex-row items-center gap-2 sm:gap-4 min-w-0 flex-shrink">
+      <nav className="w-full px-2 sm:px-4 lg:px-6">
+        <div className="flex justify-between items-center py-2 sm:py-4 w-full max-w-none">
+          {/* Brand section - more prominent sizing */}
+          <div className="flex flex-row items-center gap-2 sm:gap-3 min-w-0 flex-shrink-0">
             <div className="relative inline-flex items-center gap-1 sm:gap-2">
-              {/* Sparkle left - hidden on very small screens */}
-              <span className="absolute -left-4 sm:-left-6 -top-2 hidden md:block animate-float">
-                <Sparkles className="h-4 w-4 sm:h-6 sm:w-6 text-primary drop-shadow-[0_0_8px_theme(colors.primary.DEFAULT)]" />
+              {/* Sparkle left - visible on larger screens */}
+              <span className="absolute -left-6 sm:-left-8 -top-2 hidden lg:block animate-float">
+                <Sparkles className="h-5 w-5 sm:h-7 sm:w-7 text-primary drop-shadow-[0_0_8px_theme(colors.primary.DEFAULT)]" />
               </span>
 
               <h1
                 className="
                   relative select-none
-                  text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl
+                  text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl
                   heading-arkhip 
                   bg-gradient-ocean bg-clip-text text-transparent
                   [background-size:200%_100%] animate-ocean
@@ -52,41 +52,41 @@ const Index = () => {
                 />
               </h1>
 
-              {/* Sparkle right - hidden on very small screens */}
-              <span className="absolute -right-4 sm:-right-7 -bottom-2 hidden md:block animate-float-delayed">
-                <Sparkles className="h-3 w-3 sm:h-5 sm:w-5 text-primary drop-shadow-[0_0_8px_theme(colors.accent.DEFAULT)]" />
+              {/* Sparkle right - visible on larger screens */}
+              <span className="absolute -right-6 sm:-right-8 -bottom-2 hidden lg:block animate-float-delayed">
+                <Sparkles className="h-4 w-4 sm:h-6 sm:w-6 text-primary drop-shadow-[0_0_8px_theme(colors.accent.DEFAULT)]" />
               </span>
             </div>
 
             <img 
               src={logo} 
               alt="CleanNami Logo" 
-              className="w-8 h-8 xs:w-10 xs:h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 flex-shrink-0" 
+              className="w-10 h-10 xs:w-12 xs:h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 flex-shrink-0" 
             />
           </div>
 
-          {/* Desktop Links */}
-          <div className="hidden lg:flex space-x-3 xl:space-x-4 items-center">
-            <a href="https://ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors text-sm xl:text-base">
+          {/* Desktop Links - better responsive breakpoint */}
+          <div className="hidden xl:flex space-x-2 2xl:space-x-4 items-center flex-shrink-0">
+            <a href="https://ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors text-xs 2xl:text-sm whitespace-nowrap">
               Ceenami Music
             </a>
-            <a href="https://ceenamihaus.ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors text-sm xl:text-base">
+            <a href="https://ceenamihaus.ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors text-xs 2xl:text-sm whitespace-nowrap">
               Ceenami Haus
             </a>
-            <a href="https://shop.ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors text-sm xl:text-base">
+            <a href="https://shop.ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors text-xs 2xl:text-sm whitespace-nowrap">
               Shop
             </a>
             <Link to="/contractor">
-              <CleanNamiButton variant="ghost" size="sm" className="text-sm xl:text-base">Contractor Login</CleanNamiButton>
+              <CleanNamiButton variant="ghost" size="sm" className="text-xs 2xl:text-sm px-2 2xl:px-3">Contractor Login</CleanNamiButton>
             </Link>
             <Link to="/admin">
-              <CleanNamiButton variant="ocean" size="sm" className="text-sm xl:text-base">Admin</CleanNamiButton>
+              <CleanNamiButton variant="ocean" size="sm" className="text-xs 2xl:text-sm px-2 2xl:px-3">Admin</CleanNamiButton>
             </Link>
           </div>
           
           {/* Mobile Menu Button */}
           <button
-            className="lg:hidden p-2 flex-shrink-0"
+            className="xl:hidden p-2 flex-shrink-0"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle menu"
           >
@@ -96,7 +96,7 @@ const Index = () => {
 
         {/* Mobile Dropdown */}
         {menuOpen && (
-          <div className="absolute right-4 top-20 bg-white rounded-lg shadow-lg flex flex-col space-y-2 p-4 lg:hidden z-50 min-w-48 max-w-xs">
+          <div className="absolute right-2 top-16 sm:top-20 bg-white rounded-lg shadow-lg flex flex-col space-y-2 p-4 xl:hidden z-50 min-w-48 max-w-xs">
             <a href="https://ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors p-2 text-center">
               Ceenami Music
             </a>
@@ -121,8 +121,8 @@ const Index = () => {
       </nav>
 
       {/* Hero Section with Image */}
-      <section className="relative py-8 px-4 sm:px-6 w-full">
-        <div className="max-w-7xl mx-auto">
+      <section className="relative py-8 px-2 sm:px-4 lg:px-6 w-full">
+        <div className="w-full max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-center lg:text-left">
               <h2 className="text-4xl md:text-5xl font-bold text-primary mb-6">
@@ -167,8 +167,8 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 px-4 sm:px-6 w-full">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-16 px-2 sm:px-4 lg:px-6 w-full">
+        <div className="w-full max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
             <Card className="text-center shadow-card bg-gradient-card">
               <CardHeader>
@@ -236,8 +236,8 @@ const Index = () => {
       </section>
 
       {/* Service Types */}
-      <section className="py-16 px-4 sm:px-6 w-full">
-        <div className="max-w-4xl mx-auto">
+      <section className="py-16 px-2 sm:px-4 lg:px-6 w-full">
+        <div className="w-full max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-primary mb-12">
             Our Services
           </h2>
@@ -285,8 +285,8 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 text-center bg-gradient-ocean text-primary-foreground w-full">
-        <div className="max-w-3xl mx-auto">
+      <section className="py-20 px-2 sm:px-4 lg:px-6 text-center bg-gradient-ocean text-primary-foreground w-full">
+        <div className="w-full max-w-3xl mx-auto">
           <h2 className="text-4xl font-bold mb-6">
             Ready to Experience the CleanNami Difference?
           </h2>
@@ -303,7 +303,7 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-4 sm:px-6 text-center text-muted-foreground bg-card w-full">
+      <footer className="py-8 px-2 sm:px-4 lg:px-6 text-center text-muted-foreground bg-card w-full">
         <p>
           &copy; 2025 CleanNami. Professional cleaning services across Florida.
         </p>
