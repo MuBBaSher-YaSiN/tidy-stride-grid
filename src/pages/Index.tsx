@@ -21,7 +21,7 @@ const Index = () => {
           <div className="flex flex-row items-center gap-2 sm:gap-3 min-w-0 flex-shrink-0">
             <div className="relative inline-flex items-center gap-1 sm:gap-2">
               {/* Sparkle left - visible on larger screens */}
-              <span className="absolute -left-6 sm:-left-8 -top-2 hidden lg:block animate-float">
+              <span className="absolute -left-6 sm:-left-4 -top-2 hidden md:block animate-float">
                 <Sparkles className="h-5 w-5 sm:h-7 sm:w-7 text-primary drop-shadow-[0_0_8px_theme(colors.primary.DEFAULT)]" />
               </span>
 
@@ -30,7 +30,7 @@ const Index = () => {
                   relative select-none
                   text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl
                   heading-arkhip 
-                  bg-gradient-ocean bg-clip-text text-transparent
+                  bg-gradient-ocean bg-clip-text text-transparent ml-3
                   [background-size:200%_100%] animate-ocean
                   drop-shadow-[0_6px_24px_rgba(14,165,233,0.35)]
                   hover:scale-[1.01] transition-transform duration-500
@@ -53,7 +53,7 @@ const Index = () => {
               </h1>
 
               {/* Sparkle right - visible on larger screens */}
-              <span className="absolute -right-6 sm:-right-8 -bottom-2 hidden lg:block animate-float-delayed">
+              <span className="absolute -right-6 sm:-right-7 -bottom-2 hidden md:block animate-float-delayed">
                 <Sparkles className="h-4 w-4 sm:h-6 sm:w-6 text-primary drop-shadow-[0_0_8px_theme(colors.accent.DEFAULT)]" />
               </span>
             </div>
@@ -61,12 +61,12 @@ const Index = () => {
             <img 
               src={logo} 
               alt="CleanNami Logo" 
-              className="w-10 h-10 xs:w-12 xs:h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 flex-shrink-0" 
+              className="w-10 h-10 xs:w-12 xs:h-12 ml-4 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 flex-shrink-0" 
             />
           </div>
 
           {/* Desktop Links - better responsive breakpoint */}
-          <div className="hidden xl:flex space-x-2 2xl:space-x-4 items-center flex-shrink-0">
+          <div className="hidden lg:flex space-x-2 2xl:space-x-4 items-center flex-shrink-0">
             <a href="https://ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors text-xs 2xl:text-sm whitespace-nowrap">
               Ceenami Music
             </a>
@@ -86,7 +86,7 @@ const Index = () => {
           
           {/* Mobile Menu Button */}
           <button
-            className="xl:hidden p-2 flex-shrink-0"
+            className="lg:hidden p-2 flex-shrink-0"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle menu"
           >
