@@ -67,20 +67,20 @@ const Index = () => {
 
           {/* Desktop Links - better responsive breakpoint */}
           <div className="hidden lg:flex space-x-2 2xl:space-x-4 items-center flex-shrink-0">
-            <a href="https://ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors text-xs 2xl:text-sm whitespace-nowrap">
+            <a href="https://ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:text-primary/80 transition-colors text-sm 2xl:text-sm whitespace-nowrap">
               Ceenami Music
             </a>
-            <a href="https://ceenamihaus.ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors text-xs 2xl:text-sm whitespace-nowrap">
+            <a href="https://ceenamihaus.ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:text-primary/80 transition-colors text-sm 2xl:text-sm whitespace-nowrap">
               Ceenami Haus
             </a>
-            <a href="https://shop.ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors text-xs 2xl:text-sm whitespace-nowrap">
+            <a href="https://shop.ceenami.com/" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:text-primary/80 transition-colors text-sm 2xl:text-sm whitespace-nowrap">
               Shop
             </a>
             <Link to="/contractor">
-              <CleanNamiButton variant="ghost" size="sm" className="text-xs 2xl:text-sm px-2 2xl:px-3">Contractor Login</CleanNamiButton>
+              <CleanNamiButton variant="ghost" size="sm" className="text-sm 2xl:text-sm px-2 2xl:px-3">Contractor Login</CleanNamiButton>
             </Link>
             <Link to="/admin">
-              <CleanNamiButton variant="ocean" size="sm" className="text-xs 2xl:text-sm px-2 2xl:px-3">Admin</CleanNamiButton>
+              <CleanNamiButton variant="ocean" size="sm" className="text-sm 2xl:text-sm px-2 2xl:px-3">Admin</CleanNamiButton>
             </Link>
           </div>
           
