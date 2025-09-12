@@ -8,6 +8,7 @@ import { Sparkles, Shield, Clock, CheckCircle, Menu, X } from "lucide-react";
 import heroImage from "@/assets/hero-cleaning.jpg";
 import logo from "@/assets/logo.png";
 import { useState } from "react";
+import ReviewsSection from "@/components/ReviewsSection";
 
 
 const Index = () => {
@@ -234,6 +235,9 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Reviews Section */}
+      <ReviewsSection />
 
       {/* Service Types */}
       <section className="py-16 px-2 sm:px-4 lg:px-6 w-full">
