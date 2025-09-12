@@ -1,5 +1,8 @@
-import { Star, Quote } from "lucide-react";
+import { Star, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import useEmblaCarousel from 'embla-carousel-react';
+import { useCallback, useEffect, useState } from 'react';
 
 const reviews = [
   {
@@ -75,6 +78,39 @@ const reviews = [
 ];
 
 const ReviewsSection = () => {
+  const [emblaRef, emblaApi] = useEmblaCarousel({ 
+    loop: true,
+    align: 'start',
+    breakpoints: {
+      '(min-width: 768px)': { slidesToScroll: 2 },
+      '(min-width: 1024px)': { slidesToScroll: 3 }
+    }
+  });
+  
+  const [prevBtnEnabled, setPrevBtnEnabled] = useState(false);
+  const [nextBtnEnabled, setNextBtnEnabled] = useState(false);
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setPrevBtnEnabled(emblaApi.canScrollPrev());
+    setNextBtnEnabled(emblaApi.canScrollNext());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on('select', onSelect);
+    emblaApi.on('reInit', onSelect);
+  }, [emblaApi, onSelect]);
+
   return (
     <section className="py-16 px-2 sm:px-4 lg:px-6 w-full bg-gradient-subtle">
       <div className="w-full max-w-7xl mx-auto">
@@ -88,45 +124,73 @@ const ReviewsSection = () => {
           </p>
         </div>
 
-        {/* Reviews Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {reviews.map((review, index) => (
-            <Card key={index} className="shadow-card bg-card/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-              <CardContent className="p-6">
-                {/* Quote Icon */}
-                <Quote className="h-8 w-8 text-accent mb-4 opacity-50" />
-                
-                {/* Review Text */}
-                <p className="text-muted-foreground mb-4 italic leading-relaxed">
-                  "{review.text}"
-                </p>
-                
-                {/* Stars */}
-                <div className="flex items-center gap-1 mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      className="h-4 w-4 fill-accent text-accent" 
-                    />
-                  ))}
+        {/* Reviews Carousel */}
+        <div className="relative">
+          {/* Navigation Arrows */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm shadow-lg hover:bg-background disabled:opacity-50"
+            onClick={scrollPrev}
+            disabled={!prevBtnEnabled}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm shadow-lg hover:bg-background disabled:opacity-50"
+            onClick={scrollNext}
+            disabled={!nextBtnEnabled}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+
+          {/* Carousel Container */}
+          <div className="overflow-hidden mx-12" ref={emblaRef}>
+            <div className="flex">
+              {reviews.map((review, index) => (
+                <div key={index} className="flex-[0_0_100%] min-w-0 pr-4 md:flex-[0_0_50%] lg:flex-[0_0_33.333%]">
+                  <Card className="shadow-card bg-card/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 h-full">
+                    <CardContent className="p-6 flex flex-col h-full">
+                      {/* Quote Icon */}
+                      <Quote className="h-8 w-8 text-accent mb-4 opacity-50 flex-shrink-0" />
+                      
+                      {/* Review Text */}
+                      <p className="text-muted-foreground mb-4 italic leading-relaxed flex-grow">
+                        "{review.text}"
+                      </p>
+                      
+                      {/* Stars */}
+                      <div className="flex items-center gap-1 mb-3">
+                        {[...Array(5)].map((_, i) => (
+                          <Star 
+                            key={i} 
+                            className="h-4 w-4 fill-accent text-accent" 
+                          />
+                        ))}
+                      </div>
+                      
+                      {/* Customer Info */}
+                      <div className="border-t border-border pt-4 mt-auto">
+                        <p className="font-semibold text-primary text-sm">
+                          {review.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {review.location} • {review.service}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-                
-                {/* Customer Info */}
-                <div className="border-t border-border pt-4">
-                  <p className="font-semibold text-primary text-sm">
-                    {review.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {review.location} • {review.service}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Trust Indicators */}
-        <div className="text-center">
+        <div className="text-center mt-8">
           <div className="inline-flex items-center gap-2 bg-card/50 backdrop-blur-sm rounded-full px-6 py-3 shadow-card">
             <div className="flex items-center gap-1">
               {[...Array(5)].map((_, i) => (
