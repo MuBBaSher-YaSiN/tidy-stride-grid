@@ -216,13 +216,13 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Get all active bookings with iCal URLs
+    // Get all confirmed/active bookings with iCal URLs
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
       .select('*')
       .not('ical_urls', 'is', null)
       .neq('ical_urls', '{}')
-      .eq('booking_status', 'active')
+      .in('booking_status', ['active', 'confirmed'])
       .in('payment_status', ['completed', 'setup_complete']);
     
     if (bookingsError) {
