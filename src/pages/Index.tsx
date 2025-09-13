@@ -309,7 +309,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="py-8 px-2 sm:px-4 lg:px-6 text-center text-muted-foreground bg-card w-full">
         <p>
-          &copy; 2025 CleanNami. Professional cleaning services across Florida.
+          &copy; 2025 CleanNami. Professional cleaning services across Florida
         </p>
         <p className="text-sm mt-2">
           Serving New Smyrna Beach, Daytona Beach, and Edgewater
